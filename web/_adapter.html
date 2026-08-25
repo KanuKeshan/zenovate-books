@@ -1,0 +1,253 @@
+<!-- ═══════════════════════════════════════
+     CLOUD SYNC (ClaraBooks API) — isolated module block.
+     The main script below never talks to the network directly; it only calls
+     the small surface exposed on window.CB_FIREBASE. The name is kept from the
+     Firebase era on purpose: every call site in the 11,000 lines below already
+     speaks it, and re-pointing this one block at a real API was the whole
+     migration. Serve this file from the API origin and it turns itself on;
+     open it from disk and it stays exactly what it always was — a local,
+     offline, single-file app with no network calls and no login.
+════════════════════════════════════════ -->
+<script type="module">
+const API = (location.origin && location.protocol.startsWith('http')) ? '/api' : null;
+
+function unconfigured(reason) {
+  return {
+    configured: false, mode: 'off', reason, workspaceId: null,
+    onAuthChange(cb) { cb(null); },
+    async signIn() { throw new Error('This copy of ClaraBooks runs locally — there is no account to sign in to.'); },
+    async signOut() {},
+    async sendPasswordReset() { throw new Error('Password resets are handled by the hosted version.'); },
+    async getDoc() { return null; },
+    async setDoc() {},
+    watchDoc() { return () => {}; },
+  };
+}
+
+// ── PKCE ────────────────────────────────────────────────────────────────────
+// The password is typed into Cognito's own page and never touches this app or
+// our server. What comes back is a one-time code that is worthless without the
+// verifier held only in this tab.
+const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)))
+  .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+async function sha256(s) { return crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); }
+function randomString(bytes = 32) { return b64url(crypto.getRandomValues(new Uint8Array(bytes))); }
+
+async function boot() {
+  if (!API) { window.CB_FIREBASE = unconfigured('opened from a file, not a server'); return; }
+  let cfg = null;
+  try {
+    const r = await fetch(API + '/auth/config', { credentials: 'same-origin' });
+    if (r.ok) cfg = await r.json();
+  } catch { /* no API on this origin — fall through to local mode */ }
+  if (!cfg) { window.CB_FIREBASE = unconfigured('no ClaraBooks API on this origin'); return; }
+
+  let idToken = null;
+  let expiresAt = 0;
+  let user = null;
+  const listeners = [];
+  const notify = () => listeners.forEach((cb) => { try { cb(user); } catch (e) { console.warn(e); } });
+
+  function claims() {
+    if (!idToken) return null;
+    try { return JSON.parse(atob(idToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); }
+    catch { return null; }
+  }
+
+  async function refresh() {
+    const r = await fetch(API + '/auth/refresh', { method: 'POST', credentials: 'same-origin' });
+    if (!r.ok) { idToken = null; user = null; notify(); return false; }
+    const j = await r.json();
+    idToken = j.idToken; expiresAt = Date.now() + (j.expiresIn - 60) * 1000;
+    const c = claims();
+    user = c ? { uid: c.sub, email: c.email } : null;
+    notify();
+    return true;
+  }
+
+  async function ensureToken() {
+    if (idToken && Date.now() < expiresAt) return idToken;
+    // The refresh token lives in an httpOnly cookie, so this works after a
+    // reload without ever having put a credential anywhere script can read.
+    if (await refresh()) return idToken;
+    return null;
+  }
+
+  async function api(path, opts = {}) {
+    const token = await ensureToken();
+    if (!token) throw new Error('NOT_SIGNED_IN');
+    const r = await fetch(API + path, {
+      ...opts,
+      credentials: 'same-origin',
+      headers: {
+        ...(opts.headers || {}),
+        authorization: 'Bearer ' + token,
+        ...(opts.body ? { 'content-type': 'application/json' } : {}),
+      },
+    });
+    if (r.status === 401) { idToken = null; user = null; notify(); throw new Error('NOT_SIGNED_IN'); }
+    const body = await r.json().catch(() => null);
+    if (!r.ok) {
+      const e = new Error((body && body.message) || ('Request failed (' + r.status + ')'));
+      e.code = body && body.error; e.status = r.status; e.requestId = body && body.requestId;
+      throw e;
+    }
+    return body;
+  }
+
+  // ── the login redirect ────────────────────────────────────────────────────
+  async function startLogin() {
+    const verifier = randomString(32);
+    const challenge = b64url(await sha256(verifier));
+    const state = randomString(16);
+    sessionStorage.setItem('cb_pkce', JSON.stringify({ verifier, state }));
+    const redirectUri = location.origin + location.pathname;
+    const u = new URL(cfg.domain + '/oauth2/authorize');
+    u.searchParams.set('response_type', 'code');
+    u.searchParams.set('client_id', cfg.clientId);
+    u.searchParams.set('redirect_uri', redirectUri);
+    u.searchParams.set('scope', (cfg.scopes || ['openid', 'email', 'profile']).join(' '));
+    u.searchParams.set('code_challenge_method', 'S256');
+    u.searchParams.set('code_challenge', challenge);
+    u.searchParams.set('state', state);
+    location.assign(u.toString());
+  }
+
+  async function completeLoginIfReturning() {
+    const params = new URLSearchParams(location.search);
+    const code = params.get('code');
+    if (!code) return false;
+    const saved = (() => { try { return JSON.parse(sessionStorage.getItem('cb_pkce') || 'null'); } catch { return null; } })();
+    sessionStorage.removeItem('cb_pkce');
+    // A returned state that does not match the one this tab generated means the
+    // response is not the answer to a request we made. Refuse it.
+    if (!saved || saved.state !== params.get('state')) {
+      history.replaceState(null, '', location.pathname);
+      throw new Error('That sign-in did not match this browser session. Try signing in again.');
+    }
+    const r = await fetch(API + '/auth/callback', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code, codeVerifier: saved.verifier, redirectUri: location.origin + location.pathname }),
+    });
+    // Strip the code from the address bar either way — a code in history is a
+    // code in a screenshot, a bookmark, and a support ticket.
+    history.replaceState(null, '', location.pathname);
+    if (!r.ok) throw new Error('That sign-in could not be completed. Try again.');
+    const j = await r.json();
+    idToken = j.idToken; expiresAt = Date.now() + (j.expiresIn - 60) * 1000;
+    const c = claims();
+    user = c ? { uid: c.sub, email: c.email } : null;
+    notify();
+    return true;
+  }
+
+  // ── path mapping ──────────────────────────────────────────────────────────
+  // The call sites speak Firestore document paths. This is the whole translation.
+  function route(path) {
+    const parts = String(path).split('/');
+    if (parts[2] === 'meta') return { kind: 'meta' };
+    if (parts[2] === 'businesses' && parts[3]) return { kind: 'business', id: parts[3] };
+    return { kind: 'unknown' };
+  }
+
+  window.CB_FIREBASE = {
+    configured: true,
+    mode: cfg.mode,
+    workspaceId: 'w',
+    startLogin,
+    onAuthChange(cb) { listeners.push(cb); cb(user); },
+
+    async signIn(email, password) {
+      if (cfg.mode === 'dev') {
+        const r = await fetch(API + '/auth/dev-login', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        if (!r.ok) throw new Error('Development sign-in failed.');
+        const j = await r.json();
+        idToken = j.idToken; expiresAt = Date.now() + (j.expiresIn - 60) * 1000;
+        const c = claims();
+        user = c ? { uid: c.sub, email: c.email } : null;
+        notify();
+        return user;
+      }
+      // Cognito mode ignores the password field entirely and hands off to the
+      // hosted page. Nothing typed here is ever transmitted.
+      await startLogin();
+      return new Promise(() => {}); // the redirect ends this page
+    },
+
+    async signOut() {
+      try { await fetch(API + '/auth/logout', { method: 'POST', credentials: 'same-origin',
+        headers: idToken ? { authorization: 'Bearer ' + idToken } : {} }); } catch {}
+      idToken = null; user = null; notify();
+      if (cfg.mode === 'cognito' && cfg.domain) {
+        const u = new URL(cfg.domain + '/logout');
+        u.searchParams.set('client_id', cfg.clientId);
+        u.searchParams.set('logout_uri', location.origin + location.pathname);
+        location.assign(u.toString());
+      }
+    },
+
+    async sendPasswordReset() {
+      throw new Error('Use "Forgot password" on the sign-in page — it is handled by AWS, not by ClaraBooks.');
+    },
+
+    async getDoc(path) {
+      const r = route(path);
+      if (r.kind === 'meta') return await api('/workspace/meta');
+      if (r.kind === 'business') {
+        try { return await api('/businesses/' + encodeURIComponent(r.id) + '/snapshot'); }
+        catch (e) { if (e.status === 404) return null; throw e; }
+      }
+      return null;
+    },
+
+    async setDoc(path, data) {
+      const r = route(path);
+      if (r.kind === 'meta') {
+        const res = await api('/workspace/meta', { method: 'PUT', body: JSON.stringify({ businesses: data.businesses || [] }) });
+        // A business created offline gets a server id; hand the mapping back so
+        // the app can re-point META before its next save.
+        if (res && res.idMap && Object.keys(res.idMap).length) {
+          window.dispatchEvent(new CustomEvent('cb-id-remap', { detail: res.idMap }));
+        }
+        return;
+      }
+      if (r.kind === 'business') {
+        await api('/businesses/' + encodeURIComponent(r.id) + '/snapshot', { method: 'PUT', body: JSON.stringify(data) });
+      }
+    },
+
+    // Firestore pushed changes; REST polls. Twenty seconds is slow enough to be
+    // free and fast enough that two people editing the same client notice each
+    // other before either has done much work.
+    watchDoc(path, cb) {
+      const r = route(path);
+      if (r.kind !== 'business') return () => {};
+      let stopped = false, lastVersion = null;
+      const tick = async () => {
+        if (stopped) return;
+        try {
+          const meta = await api('/workspace/meta');
+          const b = (meta.businesses || []).find((x) => x.id === r.id);
+          if (b && lastVersion !== null && b.version !== lastVersion) cb(null, false);
+          if (b) lastVersion = b.version;
+        } catch { /* offline or signed out; the next tick retries */ }
+        if (!stopped) setTimeout(tick, 20000);
+      };
+      setTimeout(tick, 20000);
+      return () => { stopped = true; };
+    },
+  };
+
+  try { await completeLoginIfReturning(); }
+  catch (e) { window.CB_FIREBASE.loginError = e.message; }
+  if (!user) { try { await refresh(); } catch {} }
+}
+
+await boot();
+window.dispatchEvent(new Event('cb-firebase-ready'));
+</script>
