@@ -45,13 +45,13 @@ body{font-family:var(--font);font-size:14px;color:var(--tx);background:var(--bg)
 svg.icon{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;display:inline-block;vertical-align:middle}
 
 /* ── Business switcher screen ── */
-#biz-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:var(--bg2)}
+#biz-screen{display:flex;flex-direction:column;align-items:center;height:100vh;overflow-y:auto;padding:24px 0;background:var(--bg2)}
 #biz-screen .logo{font-size:28px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
 #biz-screen .logo span{color:var(--accent)}
 #biz-screen .sub{font-size:14px;color:var(--tx2);margin-bottom:36px}
 
 /* ── Cloud login screen (shown only when FIREBASE_CONFIG is filled in) ── */
-#login-screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:var(--bg2)}
+#login-screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;overflow-y:auto;background:var(--bg2)}
 #login-screen .logo{font-size:28px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
 #login-screen .logo span{color:var(--accent)}
 #login-screen .sub{font-size:14px;color:var(--tx2);margin-bottom:28px}
@@ -61,7 +61,7 @@ svg.icon{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;s
 #login-screen .login-links a{color:var(--accent);cursor:pointer;text-decoration:none}
 #login-screen .login-links a:hover{text-decoration:underline}
 #login-screen .btn.primary{width:100%;justify-content:center;margin-top:4px}
-#login-loading{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:var(--bg2);gap:14px}
+#login-loading{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;overflow-y:auto;background:var(--bg2);gap:14px}
 #login-loading .logo{font-size:28px;font-weight:800;letter-spacing:-.5px}
 #login-loading .logo span{color:var(--accent)}
 #login-loading .sub{font-size:13px;color:var(--tx2)}
