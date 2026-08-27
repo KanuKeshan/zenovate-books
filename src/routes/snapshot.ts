@@ -71,11 +71,22 @@ const jeIn = z.object({
 const bankIn = z.object({
   date: dateish,
   desc: z.string().max(2000).default(''),
-  amount: money,
+  // The front end's native shape for a bank row is debit/credit (see every
+  // bank-import call site in web/index.html — none of them ever set .amount),
+  // not a single signed amount. `amount` is accepted too, for anything that
+  // already sends one, but at least one of the three must resolve to a value
+  // or the row is rejected below rather than silently becoming $0.
+  amount: money.optional(),
+  debit: money.optional(),
+  credit: money.optional(),
   balance: money.optional().nullable(),
   cat: z.string().max(120).optional().nullable(),
-  matched: z.boolean().optional(),
+  // The front end stores this as the string 'matched' / 'unmatched', never a
+  // boolean — accept both instead of rejecting every real bank row.
+  matched: z.union([z.boolean(), z.string()]).optional(),
   posted: z.boolean().optional(),
+  // What the front end actually calls this flag; posted is the column name.
+  postedToBS: z.boolean().optional(),
   source: z.string().max(300).optional(),
 }).passthrough();
 
@@ -323,7 +334,20 @@ export default async function snapshotRoutes(app: FastifyInstance): Promise<void
       }
       const seenKeys = new Set<string>();
       for (const b of body.bankTxns) {
-        const cents = parseMoney(b.amount, 'bank amount');
+        // amount wins if sent; otherwise derive it the way the front end
+        // itself always has (see web/index.html's amountOf()): a credit is
+        // positive, a debit is the same magnitude negated. Both absent is a
+        // genuinely malformed row, not a silent $0.
+        const debitCents = b.debit == null ? 0 : parseMoney(b.debit, 'bank debit');
+        const creditCents = b.credit == null ? 0 : parseMoney(b.credit, 'bank credit');
+        const cents = b.amount != null
+          ? parseMoney(b.amount, 'bank amount')
+          : (creditCents !== 0 ? creditCents : -debitCents);
+        if (b.amount == null && b.debit == null && b.credit == null) {
+          throw badRequest(`A bank transaction on ${b.date} has no amount, debit, or credit.`);
+        }
+        const matched = b.matched === true || b.matched === 'matched';
+        const posted = b.posted ?? b.postedToBS ?? false;
         let key = dedupeKey(b.date, cents, b.desc ?? '');
         // A statement genuinely can hold two identical rows on the same day.
         // Suffixing keeps both rather than silently dropping the second.
@@ -335,7 +359,7 @@ export default async function snapshotRoutes(app: FastifyInstance): Promise<void
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (business_id,dedupe_key) DO NOTHING`,
           [businessId, b.date, b.desc ?? '', toDecimal(cents),
            b.balance == null ? null : toDecimal(parseMoney(b.balance, 'bank balance')),
-           b.cat ?? null, b.matched ?? false, b.posted ?? false, b.source ?? '', key],
+           b.cat ?? null, matched, posted, b.source ?? '', key],
         );
       }
       if (body.openingBalance && body.openingBalance.date) {
@@ -420,11 +444,21 @@ export async function readSnapshot(businessId: string): Promise<Record<string, u
     journalEntries: (entries.rows as any[]).map((r) => ({
       id: r.ref, date: iso(r.entry_date), type: r.entry_type, memo: r.memo, lines: byEntry.get(r.id) ?? [],
     })),
-    bankTxns: (bank.rows as any[]).map((r) => ({
-      date: iso(r.txn_date), desc: r.description, amount: fromDb(r.amount) / 100,
-      balance: r.balance == null ? null : fromDb(r.balance) / 100,
-      cat: r.category, matched: r.matched, posted: r.posted, source: r.source,
-    })),
+    bankTxns: (bank.rows as any[]).map((r) => {
+      // Mirror image of the write side: the front end reads .debit/.credit
+      // and a 'matched'/'unmatched' string, never .amount or a boolean, on
+      // every bank-import call site — so project the single signed column
+      // back into that shape, or a restored row displays as a blank "—" and
+      // $0 in money-in/out totals despite being stored correctly.
+      const amt = fromDb(r.amount) / 100;
+      return {
+        date: iso(r.txn_date), desc: r.description,
+        debit: amt < 0 ? -amt : 0, credit: amt > 0 ? amt : 0,
+        balance: r.balance == null ? null : fromDb(r.balance) / 100,
+        cat: r.category, matched: r.matched ? 'matched' : 'unmatched',
+        posted: r.posted, postedToBS: r.posted, source: r.source,
+      };
+    }),
     openingBalance: ob.rows[0]
       ? { date: iso((ob.rows[0] as any).as_of), cash: fromDb((ob.rows[0] as any).cash) / 100,
           ar: fromDb((ob.rows[0] as any).ar) / 100, ap: fromDb((ob.rows[0] as any).ap) / 100 }

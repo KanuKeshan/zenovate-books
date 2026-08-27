@@ -1572,7 +1572,7 @@ async function boot() {
         if (res && res.idMap && Object.keys(res.idMap).length) {
           window.dispatchEvent(new CustomEvent('cb-id-remap', { detail: res.idMap }));
         }
-        return;
+        return res;
       }
       if (r.kind === 'business') {
         await api('/businesses/' + encodeURIComponent(r.id) + '/snapshot', { method: 'PUT', body: JSON.stringify(data) });
@@ -2336,7 +2336,7 @@ function copyBackupText(){
 
 // Shared restore logic used by both the file-picker path and the paste-text
 // fallback path. Returns true on success, false (after alerting) on failure.
-function restoreBackupFromString(text){
+async function restoreBackupFromString(text){
   let payload;
   try{
     payload=JSON.parse(text);
@@ -2349,26 +2349,65 @@ function restoreBackupFromString(text){
     return false;
   }
   let added=0,updated=0;
+  // Keyed by whatever id the business is currently known by — starts as the
+  // backup file's id, gets re-keyed below if the server hands back a new one.
+  const bizDataById={};
   payload.meta.businesses.forEach(b=>{
     if(!b||!b.id)return;
     const idx=META.businesses.findIndex(x=>x.id===b.id);
     if(idx>=0){META.businesses[idx]=b;updated++;}
     else{META.businesses.push(b);added++;}
     const bizData=payload.data[b.id];
-    if(bizData)localStorage.setItem(bizKey(b.id),JSON.stringify(bizData));
+    if(bizData){
+      localStorage.setItem(bizKey(b.id),JSON.stringify(bizData));
+      bizDataById[b.id]=bizData;
+    }
   });
-  saveMeta();
+  localStorage.setItem(META_KEY,JSON.stringify(META)); // local cache, same as saveMeta()'s local half
+  // A business restored from a file arrives with the *file's* id, not a server
+  // one. Pushing META alone (what this used to do) creates the businesses
+  // server-side and silently drops their actual ledger data — the restore
+  // looks complete on screen (it's sitting in this browser's localStorage
+  // under the old id) while the database never receives it. So: push META
+  // first, apply whatever id remapping the server hands back, THEN push each
+  // business's real data under the id the server now knows it by.
+  if(cloudActive()){
+    try{
+      const res=await window.CB_FIREBASE.setDoc(wsPath('meta','main'),{businesses:META.businesses,savedBy:cloudUser.uid,savedByEmail:cloudUser.email,savedAt:Date.now()});
+      const idMap=(res&&res.idMap)||{};
+      for(const [oldId,newId] of Object.entries(idMap)){
+        const idx=META.businesses.findIndex(x=>x.id===newId||x.id===oldId);
+        if(idx>=0)META.businesses[idx].id=newId;
+        if(bizDataById[oldId]){
+          bizDataById[newId]=bizDataById[oldId];
+          delete bizDataById[oldId];
+          localStorage.setItem(bizKey(newId),JSON.stringify(bizDataById[newId]));
+          localStorage.removeItem(bizKey(oldId));
+        }
+        if(META.activeBizId===oldId)META.activeBizId=newId;
+      }
+      localStorage.setItem(META_KEY,JSON.stringify(META));
+      for(const [id,bizData] of Object.entries(bizDataById)){
+        await window.CB_FIREBASE.setDoc(wsPath('businesses',id),{...bizData,savedBy:cloudUser.uid,savedByEmail:cloudUser.email,savedAt:Date.now()});
+      }
+    }catch(e){
+      console.warn('restoreBackupFromString: cloud sync failed (local copy is still safe)',e);
+      toast('⚠️ Restored to this browser, but syncing to the server failed — try again while online');
+      showBizScreen();
+      return true;
+    }
+  }
   toast(`Backup restored ✓ ${added} added, ${updated} updated`);
   showBizScreen();
   return true;
 }
 
-function importBackup(inputEl){
+async function importBackup(inputEl){
   const file=inputEl.files&&inputEl.files[0];
   if(!file)return;
   const reader=new FileReader();
-  reader.onload=e=>{
-    restoreBackupFromString(e.target.result);
+  reader.onload=async e=>{
+    await restoreBackupFromString(e.target.result);
     inputEl.value='';
   };
   reader.onerror=()=>{
@@ -2382,10 +2421,10 @@ function openBackupPasteModal(){
   $('backup-import-text').value='';
   $('modal-backup-import').classList.add('open');
 }
-function importBackupFromText(){
+async function importBackupFromText(){
   const text=$('backup-import-text').value.trim();
   if(!text){toast('Paste your backup text first');return;}
-  if(restoreBackupFromString(text)){
+  if(await restoreBackupFromString(text)){
     $('modal-backup-import').classList.remove('open');
   }
 }
