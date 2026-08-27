@@ -158,6 +158,17 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
       }
       return { idToken: mintLocalToken({ sub: `local-${user.email}`, email: user.email, name: user.name }), expiresIn: 3600 };
     }
+    // Anything reaching here is a devrt./localrt. cookie whose mode is not
+    // currently enabled (e.g. left over from before DEV_AUTH_SECRET was
+    // turned off), or a genuinely malformed cookie — not a signal to attempt
+    // Cognito. Only attempt it when actually configured; otherwise a stale
+    // cookie from a different auth mode throws inside cognitoDomain()
+    // (COGNITO_DOMAIN unset) and 500s instead of cleanly asking to sign in
+    // again, which is what every other unrecognised-cookie case here does.
+    if (!process.env.COGNITO_DOMAIN) {
+      clearRefreshCookie(reply);
+      throw new HttpError(401, 'not_authenticated', 'Your session has ended. Sign in again.');
+    }
     const tokens = await cognitoToken({
       grant_type: 'refresh_token',
       client_id: process.env.COGNITO_CLIENT_ID ?? '',
