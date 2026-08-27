@@ -2551,7 +2551,7 @@ function selectColor(el, ctx){
   if(ph) ph.style.background=selectedColor;
 }
 
-function createBusiness(){
+async function createBusiness(){
   const name=$('biz-name-input').value.trim();
   if(!name){alert('Please enter a business name.');return;}
   const id='biz_'+Date.now();
@@ -2584,14 +2584,41 @@ function createBusiness(){
   try{localStorage.setItem(bizKey(id),emptyBlob);}
   catch(e){console.warn('createBusiness: blob write failed',e);noRoom();return;}
   META.businesses.push(biz);
-  if(!saveMeta()){
+  let localOk=true;
+  try{localStorage.setItem(META_KEY,JSON.stringify(META));}
+  catch(e){localOk=false;console.warn('createBusiness: local meta write failed',e);}
+  if(!localOk){
     META.businesses.pop();
     try{localStorage.removeItem(bizKey(id));}catch(e){}
     noRoom();
     return;
   }
+  let openId=id;
+  // saveMeta()'s own cloud push is fire-and-forget, and this business's id is
+  // still the local placeholder until the server hands back a real one — the
+  // same gap that made a restored backup look complete on screen while never
+  // reaching the database (see restoreBackupFromString above). Push directly
+  // here (not through saveMeta(), which would double-create it) and wait for
+  // the real id before treating this as done.
+  if(cloudActive()){
+    try{
+      const res=await window.CB_FIREBASE.setDoc(wsPath('meta','main'),{businesses:META.businesses,savedBy:cloudUser.uid,savedByEmail:cloudUser.email,savedAt:Date.now()});
+      const newId=(res&&res.idMap&&res.idMap[id])||null;
+      if(newId){
+        const idx=META.businesses.findIndex(x=>x.id===id);
+        if(idx>=0)META.businesses[idx].id=newId;
+        localStorage.setItem(bizKey(newId),emptyBlob);
+        localStorage.removeItem(bizKey(id));
+        localStorage.setItem(META_KEY,JSON.stringify(META));
+        openId=newId;
+      }
+    }catch(e){
+      console.warn('createBusiness: cloud sync failed (local copy is still safe)',e);
+      toast('⚠️ Saved to this browser, but syncing to the server failed — try again while online so it is not lost on reload');
+    }
+  }
   closeModal('new-biz');
-  openBusiness(id);
+  openBusiness(openId);
   toast(name+' created ✓');
 }
 
