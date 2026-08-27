@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ClaraBooks</title>
+<title>ZenovateBooks</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -270,7 +270,7 @@ tr:hover td{background:var(--bg2)}
      LOADING SCREEN (shown briefly during cloud boot)
 ════════════════════════════════════════ -->
 <div id="login-loading">
-  <div class="logo">Clara<span>Books</span></div>
+  <div class="logo">Zenovate<span>Books</span></div>
   <div class="sub" id="login-loading-msg">Loading your books…</div>
 </div>
 
@@ -278,7 +278,7 @@ tr:hover td{background:var(--bg2)}
      CLOUD LOGIN SCREEN (only shown when FIREBASE_CONFIG is filled in)
 ════════════════════════════════════════ -->
 <div id="login-screen">
-  <div class="logo">Clara<span>Books</span></div>
+  <div class="logo">Zenovate<span>Books</span></div>
   <div class="sub">Sign in to your shared workspace</div>
   <div class="login-card">
     <div class="form-row"><label>Email</label><input type="email" id="login-email" autocomplete="username" placeholder="you@example.com"></div>
@@ -296,7 +296,7 @@ tr:hover td{background:var(--bg2)}
      BUSINESS SWITCHER SCREEN
 ════════════════════════════════════════ -->
 <div id="biz-screen">
-  <div class="logo">Clara<span>Books</span></div>
+  <div class="logo">Zenovate<span>Books</span></div>
   <div class="sub">Select a business to open</div>
   <div class="biz-grid" id="biz-grid"></div>
   <button class="btn" onclick="openModal('new-biz')" style="margin-top:4px">
@@ -630,7 +630,7 @@ tr:hover td{background:var(--bg2)}
         <div class="card" style="margin-bottom:16px">
           <div class="card-header">Backup &amp; Restore</div>
           <div style="padding:16px">
-            <p style="font-size:13px;color:var(--tx2);margin:0 0 12px">Everything in ClaraBooks is stored in this browser tab only — it is tied to the exact page you're viewing right now. If you ever open a freshly downloaded copy of this file, or a different tab/preview, it will look empty because it's a separate storage bucket. Export a backup here regularly, and use "Restore from backup" on the business-picker screen to bring your data into a new copy of the file.</p>
+            <p style="font-size:13px;color:var(--tx2);margin:0 0 12px">Everything in ZenovateBooks is stored in this browser tab only — it is tied to the exact page you're viewing right now. If you ever open a freshly downloaded copy of this file, or a different tab/preview, it will look empty because it's a separate storage bucket. Export a backup here regularly, and use "Restore from backup" on the business-picker screen to bring your data into a new copy of the file.</p>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <button class="btn primary" onclick="exportBackup()"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export backup (all businesses)</button>
               <button class="btn" onclick="$('cat-restore-input').click()"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Restore from backup</button>
@@ -720,7 +720,7 @@ tr:hover td{background:var(--bg2)}
             <button class="btn primary" style="pointer-events:none;margin-top:4px">Choose file(s)</button>
           </div>
           <input type="file" id="file-input" accept=".csv,.pdf" multiple onchange="handleFiles(this.files)">
-          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2);margin:10px 2px"><input type="checkbox" id="archive-pdf-checkbox" style="accent-color:var(--accent)"> Also keep a copy of the uploaded PDF saved in ClaraBooks (uses more browser storage — off by default)</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2);margin:10px 2px"><input type="checkbox" id="archive-pdf-checkbox" style="accent-color:var(--accent)"> Also keep a copy of the uploaded PDF saved in ZenovateBooks (uses more browser storage — off by default)</label>
           <div id="parse-progress" style="display:none"><div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div><p id="parse-status" style="font-size:13px;color:var(--tx2);text-align:center;margin-top:8px"></p></div>
           <div class="card" style="padding:16px"><div style="font-weight:600;margin-bottom:8px;font-size:13px">Supported formats</div><div style="font-size:12px;color:var(--tx2);line-height:1.8">CSV columns auto-detected: <strong>Date, Description, Amount, Debit, Credit, Balance</strong><br>PDF: text-based statements parsed automatically. Scanned PDFs may not work — export CSV from your bank as a fallback.</div></div>
           <div id="bank-derived-cleanup" style="display:none"></div>
@@ -927,7 +927,7 @@ tr:hover td{background:var(--bg2)}
       </div>
       <div class="form-row"><label>Business name</label><input id="biz-name-input" placeholder="e.g. Acme Design Studio" oninput="updateLogoPlaceholder('new',this.value)"></div>
       <div class="form-row"><label>Business type</label><select id="biz-type-input"><option>Service-based</option><option>Product/Retail</option><option>SaaS/Subscription</option><option>Freelance/Consulting</option><option>E-commerce</option><option>Non-profit</option><option>Other</option></select></div>
-      <div class="form-row"><label>Where the books live</label><select id="biz-source-input" onchange="onBizSourceChange('new')"><option value="ledger">In ClaraBooks — invoices, expenses, bank feed</option><option value="statements">Analysis only — I'll upload their financial statements</option></select>
+      <div class="form-row"><label>Where the books live</label><select id="biz-source-input" onchange="onBizSourceChange('new')"><option value="ledger">In ZenovateBooks — invoices, expenses, bank feed</option><option value="statements">Analysis only — I'll upload their financial statements</option></select>
         <div id="biz-source-note-new" style="font-size:12px;color:var(--tx2);margin-top:6px;line-height:1.5;display:none">Analysis-only businesses skip invoicing, expenses and payroll entirely. You upload the profit &amp; loss, balance sheet and cash flow statement, and the FP&amp;A page builds every metric from those. You can switch this later.</div>
       </div>
       <div class="form-row"><label>Currency</label><select id="biz-currency-input"><option value="$">USD ($)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option><option value="CA$">CAD (CA$)</option><option value="A$">AUD (A$)</option><option value="₹">INR (₹)</option><option value="¥">JPY (¥)</option><option value="S$">SGD (S$)</option><option value="AED">AED</option><option value="R">ZAR (R)</option></select></div>
@@ -968,7 +968,7 @@ tr:hover td{background:var(--bg2)}
       </div>
       <div class="form-row"><label>Business name</label><input id="edit-biz-name" placeholder="Business name" oninput="updateLogoPlaceholder('edit',this.value)"></div>
       <div class="form-row"><label>Business type</label><select id="edit-biz-type"><option>Service-based</option><option>Product/Retail</option><option>SaaS/Subscription</option><option>Freelance/Consulting</option><option>E-commerce</option><option>Non-profit</option><option>Other</option></select></div>
-      <div class="form-row"><label>Where the books live</label><select id="edit-biz-source" onchange="onBizSourceChange('edit')"><option value="ledger">In ClaraBooks — invoices, expenses, bank feed</option><option value="statements">Analysis only — uploaded financial statements</option></select>
+      <div class="form-row"><label>Where the books live</label><select id="edit-biz-source" onchange="onBizSourceChange('edit')"><option value="ledger">In ZenovateBooks — invoices, expenses, bank feed</option><option value="statements">Analysis only — uploaded financial statements</option></select>
         <div id="biz-source-note-edit" style="font-size:12px;color:var(--tx2);margin-top:6px;line-height:1.5;display:none">Switching to analysis-only hides invoicing, expenses and payroll. Nothing already recorded is deleted — switch back and it is all still there.</div>
       </div>
       <div class="form-row"><label>Currency</label><select id="edit-biz-currency"><option value="$">USD ($)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option><option value="CA$">CAD (CA$)</option><option value="A$">AUD (A$)</option><option value="₹">INR (₹)</option><option value="¥">JPY (¥)</option><option value="S$">SGD (S$)</option><option value="AED">AED</option><option value="R">ZAR (R)</option></select></div>
@@ -1120,8 +1120,8 @@ tr:hover td{background:var(--bg2)}
   <div class="modal" style="max-width:520px">
     <div class="modal-header">Opening balances <button class="btn sm" onclick="closeModal('opening-balance')"><svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body">
-      <p style="font-size:13px;color:var(--tx2);margin:0 0 12px">If your books didn't start on day one of this account, set the true balances as of a cutover date here instead of re-entering every historical transaction. Everything you record in ClaraBooks from that date forward builds on top of these numbers.</p>
-      <div class="form-row"><label>As of date (last day NOT covered by your ClaraBooks records — e.g. the day before your first bank import)</label><input type="date" id="ob-date"></div>
+      <p style="font-size:13px;color:var(--tx2);margin:0 0 12px">If your books didn't start on day one of this account, set the true balances as of a cutover date here instead of re-entering every historical transaction. Everything you record in ZenovateBooks from that date forward builds on top of these numbers.</p>
+      <div class="form-row"><label>As of date (last day NOT covered by your ZenovateBooks records — e.g. the day before your first bank import)</label><input type="date" id="ob-date"></div>
       <div class="form-row"><label>Cash balance on that date</label><input type="number" id="ob-cash" placeholder="0.00" step="0.01"></div>
       <p style="font-size:11px;color:var(--tx2);margin:-6px 0 12px">Only used when there's no bank statement balance already covering this date — once you've imported statements through this period, the real bank balance takes over automatically and this figure stops applying to Cash.</p>
       <div class="form-row"><label>Accounts Receivable (unpaid invoices from before this date, optional)</label><input type="number" id="ob-ar" placeholder="0.00" step="0.01"></div>
@@ -1164,7 +1164,7 @@ tr:hover td{background:var(--bg2)}
         <div class="form-row"><label>Other income — annual (Step 4a)</label><input type="number" id="emp-other-income" placeholder="0.00" step="0.01"></div>
         <div class="form-row"><label>Deductions — annual (Step 4b)</label><input type="number" id="emp-other-deductions" placeholder="0.00" step="0.01"></div>
       </div>
-      <p style="font-size:11px;color:var(--tx2);margin:-6px 0 12px">State income tax withholding — ClaraBooks doesn't calculate this from state tax brackets (see Tax Settings for why); enter a flat rate or amount from your state's own withholding calculator instead.</p>
+      <p style="font-size:11px;color:var(--tx2);margin:-6px 0 12px">State income tax withholding — ZenovateBooks doesn't calculate this from state tax brackets (see Tax Settings for why); enter a flat rate or amount from your state's own withholding calculator instead.</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="form-row"><label>State withholding type</label><select id="emp-state-wh-type"><option value="none">None</option><option value="percent">% of gross pay</option><option value="flat">Flat $ per paycheck</option></select></div>
         <div class="form-row"><label>State withholding value</label><input type="number" id="emp-state-wh-value" placeholder="0.00" step="0.01"></div>
@@ -1340,7 +1340,7 @@ tr:hover td{background:var(--bg2)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <!-- ═══════════════════════════════════════
-     CLOUD SYNC (ClaraBooks API) — isolated module block.
+     CLOUD SYNC (ZenovateBooks API) — isolated module block.
      The main script below never talks to the network directly; it only calls
      the small surface exposed on window.CB_FIREBASE. The name is kept from the
      Firebase era on purpose: every call site in the 11,000 lines below already
@@ -1356,7 +1356,7 @@ function unconfigured(reason) {
   return {
     configured: false, mode: 'off', reason, workspaceId: null,
     onAuthChange(cb) { cb(null); },
-    async signIn() { throw new Error('This copy of ClaraBooks runs locally — there is no account to sign in to.'); },
+    async signIn() { throw new Error('This copy of ZenovateBooks runs locally — there is no account to sign in to.'); },
     async signOut() {},
     async sendPasswordReset() { throw new Error('Password resets are handled by the hosted version.'); },
     async getDoc() { return null; },
@@ -1381,7 +1381,7 @@ async function boot() {
     const r = await fetch(API + '/auth/config', { credentials: 'same-origin' });
     if (r.ok) cfg = await r.json();
   } catch { /* no API on this origin — fall through to local mode */ }
-  if (!cfg) { window.CB_FIREBASE = unconfigured('no ClaraBooks API on this origin'); return; }
+  if (!cfg) { window.CB_FIREBASE = unconfigured('no ZenovateBooks API on this origin'); return; }
 
   let idToken = null;
   let expiresAt = 0;
@@ -1514,6 +1514,23 @@ async function boot() {
         notify();
         return user;
       }
+      if (cfg.mode === 'local') {
+        const r = await fetch(API + '/auth/local-login', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        if (!r.ok) {
+          const body = await r.json().catch(() => null);
+          throw new Error((body && body.message) || 'That email or password is incorrect.');
+        }
+        const j = await r.json();
+        idToken = j.idToken; expiresAt = Date.now() + (j.expiresIn - 60) * 1000;
+        const c = claims();
+        user = c ? { uid: c.sub, email: c.email } : null;
+        notify();
+        return user;
+      }
       // Cognito mode ignores the password field entirely and hands off to the
       // hosted page. Nothing typed here is ever transmitted.
       await startLogin();
@@ -1533,7 +1550,7 @@ async function boot() {
     },
 
     async sendPasswordReset() {
-      throw new Error('Use "Forgot password" on the sign-in page — it is handled by AWS, not by ClaraBooks.');
+      throw new Error('Use "Forgot password" on the sign-in page — it is handled by AWS, not by ZenovateBooks.');
     },
 
     async getDoc(path) {
@@ -1687,7 +1704,7 @@ const EXTRA_EXPENSE_CATS_BY_TYPE={
 // Basic Balance Sheet accounts every business starts with — Cash and
 // Accounts Receivable are populated automatically (from your bank balance
 // and unpaid invoices respectively); Accounts Payable and Owner's Equity
-// start at $0 and only move via journal entries, since ClaraBooks doesn't
+// start at $0 and only move via journal entries, since ZenovateBooks doesn't
 // yet track unpaid bills as their own thing. Retained Earnings isn't a
 // manual account at all — it's computed from all-time income minus expenses,
 // same as a real set of books.
@@ -2231,7 +2248,7 @@ function cbFreeArchives(id){
   const n=list.length;
   if(!confirm('Remove '+n+' archived PDF'+(n===1?'':'s')+' from '+b.name+'?\n\n'+
     'These are stored copies of bank statement files you uploaded. The transactions read from them are NOT affected — only the copy of the original file.\n\n'+
-    'This cannot be undone from inside ClaraBooks.'))return;
+    'This cannot be undone from inside ZenovateBooks.'))return;
   d.statementArchive=[];
   try{localStorage.setItem(key,JSON.stringify(d));}
   catch(e){console.warn('cbFreeArchives failed',e);toast('Could not rewrite that business');return;}
@@ -2244,7 +2261,7 @@ function cbFreeArchives(id){
 // ═══════════════════════════════════════
 // BACKUP / RESTORE
 // ═══════════════════════════════════════
-// ClaraBooks stores everything in this browser tab's localStorage, which is
+// ZenovateBooks stores everything in this browser tab's localStorage, which is
 // scoped to the exact page/origin currently open. A freshly downloaded copy
 // of this file, or Claude's inline preview pane, can each be a DIFFERENT
 // storage bucket than the tab you've been working in — so data doesn't
@@ -2324,11 +2341,11 @@ function restoreBackupFromString(text){
   try{
     payload=JSON.parse(text);
   }catch(err){
-    alert('That doesn\'t look like valid JSON. Make sure you selected/pasted a full ClaraBooks backup (exported from Categories → Backup & Restore).');
+    alert('That doesn\'t look like valid JSON. Make sure you selected/pasted a full ZenovateBooks backup (exported from Categories → Backup & Restore).');
     return false;
   }
   if(!payload||!payload.clarabooksBackup||!payload.meta||!Array.isArray(payload.meta.businesses)||!payload.data){
-    alert('That doesn\'t look like a ClaraBooks backup. Make sure you selected/pasted a file exported from Categories → Backup & Restore.');
+    alert('That doesn\'t look like a ZenovateBooks backup. Make sure you selected/pasted a file exported from Categories → Backup & Restore.');
     return false;
   }
   let added=0,updated=0;
@@ -2787,7 +2804,7 @@ async function doPasswordReset(){
   }
 }
 async function doSignOut(){
-  if(!confirm('Sign out of ClaraBooks?'))return;
+  if(!confirm('Sign out of ZenovateBooks?'))return;
   stopAllCloudSyncWatches();
   try{await window.CB_FIREBASE.signOut();}catch(e){console.warn('signOut error',e);}
   // The onAuthChange listener handles showing the login screen again.
@@ -3301,7 +3318,7 @@ function deleteJournalEntry(id){
 function computeBalanceSheet(asOfDate){
   const bankTxns=(S.bankTxns||[]).filter(t=>!asOfDate||t.date<=asOfDate);
   // Opening Balances (see saveOpeningBalance): a one-time "as of" snapshot
-  // for onboarding into ClaraBooks mid-stream instead of reconstructing
+  // for onboarding into ZenovateBooks mid-stream instead of reconstructing
   // every historical transaction. ob.cash only gets added directly to the
   // Cash figure when there's no real bank-statement balance covering this
   // date — once statements exist for the period, the actual bank balance
@@ -3310,7 +3327,7 @@ function computeBalanceSheet(asOfDate){
   // date has passed the opening-balance date: even when real bank data
   // drives Cash, that real balance already embeds the pre-cutover ob.cash
   // plus everything recorded since, while Retained Earnings only knows
-  // about activity actually entered in ClaraBooks — so the plug is what
+  // about activity actually entered in ZenovateBooks — so the plug is what
   // keeps Assets = Liabilities + Equity either way.
   const ob=S.openingBalance;
   const obApplies=!!(ob&&ob.date&&(!asOfDate||ob.date<=asOfDate));
@@ -3387,7 +3404,7 @@ function openOpeningBalanceModal(){
 }
 function saveOpeningBalance(){
   const date=$('ob-date').value;
-  if(!date){alert('Pick an as-of date first — the day before your ClaraBooks records begin.');return;}
+  if(!date){alert('Pick an as-of date first — the day before your ZenovateBooks records begin.');return;}
   S.openingBalance={
     date,
     cash:Number($('ob-cash').value)||0,
@@ -3414,7 +3431,7 @@ function renderOpeningBalanceSummary(){
   const ob=S.openingBalance;
   el.innerHTML=ob
     ?`<div style="font-size:13px;color:var(--tx2)">As of <strong style="color:var(--tx)">${ob.date}</strong>: Cash ${bizFmt(ob.cash||0)}${ob.ar?' · AR '+bizFmt(ob.ar):''}${ob.ap?' · AP '+bizFmt(ob.ap):''}</div>`
-    :`<p class="empty" style="padding:0;text-align:left">No opening balances set — Cash and AR/AP are computed entirely from what's recorded in ClaraBooks. If your books didn't start on day one, click "Set opening balances" above.</p>`;
+    :`<p class="empty" style="padding:0;text-align:left">No opening balances set — Cash and AR/AP are computed entirely from what's recorded in ZenovateBooks. If your books didn't start on day one, click "Set opening balances" above.</p>`;
 }
 function renderBalanceSheetPage(){
   renderOpeningBalanceSummary();
@@ -4176,7 +4193,7 @@ function renderTimingMismatches(){
     </tr></thead>
     <tbody>${rows}</tbody>
   </table></div>
-  <p style="font-size:11px;color:var(--tx2);margin-top:8px">These were matched by amount + description only (no bankFingerprint, meaning they were entered by hand rather than imported), so ClaraBooks can't tell whether the recorded date or the bank date is the "true" one. If the recorded date is wrong, fix it at the source (delete and re-add with the correct date); the amount and match itself are fine either way.</p>`;
+  <p style="font-size:11px;color:var(--tx2);margin-top:8px">These were matched by amount + description only (no bankFingerprint, meaning they were entered by hand rather than imported), so ZenovateBooks can't tell whether the recorded date or the bank date is the "true" one. If the recorded date is wrong, fix it at the source (delete and re-add with the correct date); the amount and match itself are fine either way.</p>`;
 }
 
 // Merges a freshly-parsed batch of transactions into the existing bank
@@ -4555,7 +4572,7 @@ function parsePDFText(text){
   // Some banks (Wells Fargo among them) issue a single PDF covering MULTIPLE
   // accounts — e.g. a "Combined Statement of Accounts" with a business
   // checking account's full transaction history followed by a business
-  // savings account's own separate transaction history. ClaraBooks only
+  // savings account's own separate transaction history. ZenovateBooks only
   // keeps one flat bank-transaction ledger per business (no per-account
   // split), so blending both in would double-count inter-account transfers
   // (the same transfer shows as an outflow on one side and an inflow on the
@@ -4774,7 +4791,7 @@ function parsePDFText(text){
     // dualColTableClosed comment above). Say so explicitly rather than
     // leaving the user to wonder why a second account's activity never
     // showed up.
-    setTimeout(()=>toast('Note: this PDF covers more than one bank account — only the first account\'s transactions were imported. ClaraBooks tracks one account per business right now; for the second account, export it as CSV from your bank\'s website and import that instead.'),3200);
+    setTimeout(()=>toast('Note: this PDF covers more than one bank account — only the first account\'s transactions were imported. ZenovateBooks tracks one account per business right now; for the second account, export it as CSV from your bank\'s website and import that instead.'),3200);
   }
 }
 
@@ -5511,7 +5528,7 @@ function clearBank(){
   const bizName=activeBiz().name||'this business';
   if(!confirm(`Clear ALL ${n} imported bank transactions for ${bizName} across every statement you've uploaded? Your recorded invoices and expenses are separate and won't be affected — this only clears the bank import list for ${bizName}. You can undo this right after if it was a mistake.`))return;
 
-  // Defensive isolation check — every write in ClaraBooks is scoped to
+  // Defensive isolation check — every write in ZenovateBooks is scoped to
   // bizKey(activeBizId), so clearing one business's bank history should be
   // structurally impossible to affect any other business. This snapshots
   // every OTHER business's bank transaction count before the clear, then
@@ -5535,7 +5552,7 @@ function clearBank(){
       const raw=localStorage.getItem(bizKey(o.id));
       const count=raw?(JSON.parse(raw).bankTxns||[]).length:0;
       if(count!==o.count){
-        console.error(`ClaraBooks isolation check failed: clearing ${bizName} changed ${o.name}'s bank transactions from ${o.count} to ${count}.`);
+        console.error(`ZenovateBooks isolation check failed: clearing ${bizName} changed ${o.name}'s bank transactions from ${o.count} to ${count}.`);
         alert(`Something unexpected happened: clearing ${bizName}'s bank history also changed ${o.name}'s data (${o.count} → ${count} transactions). Please export a backup right away (Categories → Backup & Restore) and let me know — this should not be possible and I want to track down exactly how it happened.`);
       }
     }catch(e){}
@@ -5558,7 +5575,7 @@ function undoClearBank(){
 // ═══════════════════════════════════════
 // Everything below reads from a normalized "period" array rather than from S
 // directly. That indirection is the whole point: a business with real books in
-// ClaraBooks gets its periods from fpaPeriodsFromLedger(), and a business whose
+// ZenovateBooks gets its periods from fpaPeriodsFromLedger(), and a business whose
 // books live somewhere else (statements uploaded, or migrated history from
 // QuickBooks) will get the identical shape from a different feeder. Every metric
 // function below is pure — periods in, numbers out — so it never learns which
@@ -5744,7 +5761,7 @@ function fpaWorkingCapital(p){
     key:p.key,label:p.label,
     dsoDays,dpoDays,
     cashCycleDays:(dsoDays==null||dpoDays==null)?null:dsoDays-dpoDays,
-    // ClaraBooks does not split liabilities into current and long-term, so this
+    // ZenovateBooks does not split liabilities into current and long-term, so this
     // is deliberately not called a current ratio. It is liquid assets against
     // every liability on the sheet, which is the conservative read.
     liquidAssets:p.bs.cash+p.bs.ar,
@@ -6062,7 +6079,7 @@ function fpaRankedBars(rows,total){
 // ═══════════════════════════════════════
 // FP&A — STATEMENT-FED BUSINESSES
 // ═══════════════════════════════════════
-// Some clients will never keep their books in ClaraBooks. They already have an
+// Some clients will never keep their books in ZenovateBooks. They already have an
 // accountant, or a system, and all they can hand over is the three statements.
 // Everything here exists to turn that into the exact same period array that
 // fpaPeriodsFromLedger() produces, so every metric, chart, flag and export above
@@ -6128,7 +6145,7 @@ function stmtSplitDelimited(text,delim){
 // ═══════════════════════════════════════
 // A cutover migration, not a history replay. You pick the date the QuickBooks
 // books stop; everything as of that morning comes across as balances, and
-// ClaraBooks records everything from that day forward. This is what conversion
+// ZenovateBooks records everything from that day forward. This is what conversion
 // services actually do, and it is the only approach whose correctness can be
 // PROVEN — a trial balance either reproduces or it does not.
 //
@@ -6313,7 +6330,7 @@ function qbParseAging(grid){
 }
 
 // The Customer Contact List that ships in a QuickBooks export. Vendors are
-// deliberately NOT imported the same way: ClaraBooks' payee list is the people
+// deliberately NOT imported the same way: ZenovateBooks' payee list is the people
 // who submit expense claims, and tipping five hundred suppliers into it would
 // wreck the feature it exists for. Vendor names arrive naturally on expenses.
 function qbParseContacts(grid){
@@ -6370,7 +6387,7 @@ function qbNormalizeDate(s){
 // The arithmetic, once, so it can be checked: writing C for cash, A for
 // receivables, P for payables, OA/OL/EQ for the other assets, liabilities and
 // equity, and INC/EXP for the year-to-date profit and loss accounts, a trial
-// balance asserts C + A + OA + EXP = P + OL + EQ + INC. ClaraBooks derives cash,
+// balance asserts C + A + OA + EXP = P + OL + EQ + INC. ZenovateBooks derives cash,
 // receivables and payables through its own mechanisms and already credits their
 // net to equity, so the opening entry has to remove that duplicate: one offset
 // line of C + A − P on the debit side. Substituting the trial balance identity
@@ -6383,7 +6400,7 @@ function qbBuildPlan(rows,aging,apAging,cutover,customers){
   const C=sum(['cash'],net);
   const A=sum(['ar'],net);
   const P=-sum(['ap'],net);                            // credit-positive
-  // ClaraBooks computes its own "Retained Earnings" line from income less
+  // ZenovateBooks computes its own "Retained Earnings" line from income less
   // expenses. A QuickBooks account of exactly that name is a different thing —
   // prior years brought forward — and importing it under the same label puts two
   // rows called Retained Earnings on the balance sheet showing different
@@ -6582,7 +6599,7 @@ function qbChecks(plan,verify){
   const books=qbExistingBooks();
   // Deliberately the FIRST check and a blocking one. Every other failure here is
   // about the file; this one is about having the wrong company open, which is
-  // the only mistake on this screen that damages records already in ClaraBooks.
+  // the only mistake on this screen that damages records already in ZenovateBooks.
   // The override is a checkbox rather than a warning, so continuing is a
   // decision someone made rather than a banner they scrolled past.
   if(books.empty){
@@ -6651,7 +6668,7 @@ function qbChecks(plan,verify){
 
   const bad=(verify||[]).filter(f=>!f.ok);
   out.push({id:'verify',level:bad.length?'fail':'pass',
-    title:'ClaraBooks reproduces the trial balance',
+    title:'ZenovateBooks reproduces the trial balance',
     detail:bad.length
       ?bad.length+' figure'+(bad.length===1?'':'s')+' would not come out right: '+bad.slice(0,4).map(f=>f.label+' '+bizFmt(f.got)+' vs '+bizFmt(f.want)).join('; ')+(bad.length>4?'; and more':'')+'.'+
         // When the books are not empty this failure is not a mystery: it is the
@@ -6725,7 +6742,7 @@ function qbStep1Html(){
     '<h3 style="margin:0 0 6px">What to export from QuickBooks</h3>'+
     '<div style="font-size:13px;color:var(--tx2);line-height:1.65;max-width:760px">'+
       'This is a <strong style="color:var(--tx)">cutover</strong>, not a replay of history. Pick the date the QuickBooks books stop; '+
-      'everything standing as of that date comes across as balances, and ClaraBooks records everything from that day forward. '+
+      'everything standing as of that date comes across as balances, and ZenovateBooks records everything from that day forward. '+
       'It is what a conversion service does, and it is the only version whose correctness can be proved — a trial balance either reproduces or it does not.<br><br>'+
       'In QuickBooks, each report is under <em>Reports</em>, and each one exports to Excel or CSV. Set every report to the <strong style="color:var(--tx)">same</strong> as-of date.'+
     '</div>'+
@@ -6858,7 +6875,7 @@ function qbStep2Html(){
   return '<div class="card" style="padding:16px 18px">'+
     '<h3 style="margin:0 0 4px">'+rows.length+' accounts, as of '+escH(qbWiz.cutover)+'</h3>'+
     '<div style="font-size:13px;color:var(--tx2);line-height:1.6;max-width:760px">'+
-      'ClaraBooks guessed a type for each from its name. '+
+      'ZenovateBooks guessed a type for each from its name. '+
       (unknown?'<strong style="color:var(--amber)">'+unknown+' need'+(unknown===1?'s':'')+' a decision</strong> — those are listed first and highlighted. '
               :'Everything was recognised. ')+
       'Anything set to <em>skip</em> is not imported, which is right for subtotal rows and wrong for anything else.'+
@@ -6913,9 +6930,9 @@ function qbStep3Html(){
     '</div>'+checkHtml+
   '</div>'+
   '<div class="card" style="padding:16px 18px;margin-bottom:16px">'+
-    '<h3 style="margin:0 0 8px">QuickBooks against ClaraBooks, line by line</h3>'+
+    '<h3 style="margin:0 0 8px">QuickBooks against ZenovateBooks, line by line</h3>'+
     '<div class="table-wrap tbl-scroll" style="max-height:460px;overflow-y:auto"><table class="fpa-wide" style="font-size:12px"><thead><tr>'+
-      '<th>Figure</th><th style="text-align:right">QuickBooks</th><th style="text-align:right">ClaraBooks</th><th style="text-align:right">Difference</th>'+
+      '<th>Figure</th><th style="text-align:right">QuickBooks</th><th style="text-align:right">ZenovateBooks</th><th style="text-align:right">Difference</th>'+
     '</tr></thead><tbody>'+verify.map(vrow).join('')+'</tbody></table></div>'+
   '</div>'+
   '<div class="card" style="padding:16px 18px">'+
@@ -6968,9 +6985,9 @@ function qbStep4Html(){
     '</div>'+
   '</div>'+
   '<div class="card" style="padding:16px 18px;margin-bottom:16px">'+
-    '<h3 style="margin:0 0 8px">The balance sheet ClaraBooks now shows</h3>'+
+    '<h3 style="margin:0 0 8px">The balance sheet ZenovateBooks now shows</h3>'+
     '<div class="table-wrap"><table class="fpa-wide" style="font-size:12px"><thead><tr>'+
-      '<th>Figure</th><th style="text-align:right">QuickBooks</th><th style="text-align:right">ClaraBooks</th></tr></thead><tbody>'+
+      '<th>Figure</th><th style="text-align:right">QuickBooks</th><th style="text-align:right">ZenovateBooks</th></tr></thead><tbody>'+
       row('Cash',p.expected.cash,bs.cash)+
       row('Accounts receivable',p.expected.ar,bs.ar)+
       row('Accounts payable',p.expected.ap,bs.ap)+
@@ -7019,7 +7036,7 @@ async function cbUnzip(arrayBuffer){
   if(eocd<0)throw new Error('This does not look like a .xlsx file — no ZIP directory was found in it.');
   const count=dv.getUint16(eocd+10,true);
   let cdOff=dv.getUint32(eocd+16,true);
-  if(count===0xffff||cdOff===0xffffffff)throw new Error('This workbook uses the ZIP64 format, which ClaraBooks cannot read. Re-save it from Excel as .xlsx, or export the sheet as CSV.');
+  if(count===0xffff||cdOff===0xffffffff)throw new Error('This workbook uses the ZIP64 format, which ZenovateBooks cannot read. Re-save it from Excel as .xlsx, or export the sheet as CSV.');
   const out={};
   let p=cdOff;
   for(let n=0;n<count;n++){
@@ -7045,7 +7062,7 @@ async function cbZipText(entries,name){
 
 function cbXmlDoc(text){
   const d=new DOMParser().parseFromString(text,'application/xml');
-  if(d.getElementsByTagName('parsererror').length)throw new Error('The workbook contains XML ClaraBooks could not parse.');
+  if(d.getElementsByTagName('parsererror').length)throw new Error('The workbook contains XML ZenovateBooks could not parse.');
   return d;
 }
 
@@ -8141,7 +8158,7 @@ async function stmtReadFile(input){
     stmtIngest(await f.text(),f.name);
   }catch(e){
     console.warn('stmtReadFile',e);
-    alert('ClaraBooks could not read that file.\n\n'+(e&&e.message?e.message:String(e))+
+    alert('ZenovateBooks could not read that file.\n\n'+(e&&e.message?e.message:String(e))+
       '\n\nThe surest route is always to open it, select the cells and paste them into the box above.');
   }
 }
@@ -8154,7 +8171,7 @@ function stmtIngestGrid(grid,sourceName){
   const found=stmtFindHeader(grid);
   if(!found.periods.length){
     toast('No period columns recognised — check that the top row has dates');
-    alert('ClaraBooks could not find a row of period headings.\n\nThe first row it can use should look like:\n\n    (blank)   Jan 2026   Feb 2026   Mar 2026\n\nRecognised formats include Jan 2026, January 2026, Jan-26, 2026-01, 01/2026, 31/01/2026, Q1 2026 and FY2026.');
+    alert('ZenovateBooks could not find a row of period headings.\n\nThe first row it can use should look like:\n\n    (blank)   Jan 2026   Feb 2026   Mar 2026\n\nRecognised formats include Jan 2026, January 2026, Jan-26, 2026-01, 01/2026, 31/01/2026, Q1 2026 and FY2026.');
     return;
   }
   stmtWiz.grid=grid;
@@ -8216,7 +8233,7 @@ function stmtStep2Html(){
   return'<div class="card">'+
     '<h3 style="margin:0 0 6px">'+cols.length+' period'+(cols.length===1?'':'s')+' found — '+escH(cols[0].label)+' to '+escH(cols[cols.length-1].label)+'</h3>'+
     '<div style="color:var(--tx2);font-size:13px;line-height:1.6;max-width:700px">Read as <strong style="color:var(--tx)">'+escH(cols[0].gran==='year'?'annual':cols[0].gran==='quarter'?'quarterly':'monthly')+'</strong> periods. '+
-    '<br><br>ClaraBooks guessed a meaning for '+auto+' of '+rows.filter(r=>!r.isHeader).length+' lines from their names. Change anything it got wrong — a line left as <em>skip</em> is simply not imported.</div>'+
+    '<br><br>ZenovateBooks guessed a meaning for '+auto+' of '+rows.filter(r=>!r.isHeader).length+' lines from their names. Change anything it got wrong — a line left as <em>skip</em> is simply not imported.</div>'+
     '<div id="stmt-map-warn" style="margin-top:12px">'+stmtMapWarnHtml()+'</div>'+
     // Say out loud that the number columns are a sample and the row list scrolls.
     // Without this the screen reads as "6 periods found" above a table showing
@@ -8376,7 +8393,7 @@ function renderFpaPage(){
     $('fpa-content').innerHTML=
       '<div class="card"><h3 style="margin:0 0 8px">No statements uploaded yet</h3>'+
       '<div style="color:var(--tx2);font-size:13px;line-height:1.6;max-width:640px">'+
-      escH(activeBiz().name||'This business')+' is set up for analysis only — it has no ledger in ClaraBooks. '+
+      escH(activeBiz().name||'This business')+' is set up for analysis only — it has no ledger in ZenovateBooks. '+
       'Upload its profit &amp; loss, balance sheet and cash flow statement and every metric, chart and flag on this page fills in from those.<br><br>'+
       'Copy the cells straight out of Excel or Google Sheets and paste them in, or upload a CSV. Periods across the top, line items down the side.'+
       '</div><div style="margin-top:14px"><button class="btn primary" onclick="openStmtImport()">Upload statements</button></div></div>';
@@ -8580,7 +8597,7 @@ function fpaCapitalHtml(periods){
     : '<div style="color:var(--tx2);font-size:13px">Need at least two periods to compare.</div>';
 
   return'<div class="card" style="margin-bottom:16px"><h3 style="margin:0 0 4px">Working capital</h3>'+
-    '<div style="color:var(--tx2);font-size:12px;margin-bottom:12px">DSO is how many days of revenue are tied up in unpaid invoices. DPO is the same idea for what you owe — computed against total expenses, since ClaraBooks has no separate concept of credit purchases, so read it as directional. &ldquo;Liquid vs liabilities&rdquo; is cash plus receivables against <em>every</em> liability, not just current ones, because the chart of accounts does not split them.</div>'+
+    '<div style="color:var(--tx2);font-size:12px;margin-bottom:12px">DSO is how many days of revenue are tied up in unpaid invoices. DPO is the same idea for what you owe — computed against total expenses, since ZenovateBooks has no separate concept of credit purchases, so read it as directional. &ldquo;Liquid vs liabilities&rdquo; is cash plus receivables against <em>every</em> liability, not just current ones, because the chart of accounts does not split them.</div>'+
     wcTable+'</div>'+
     '<div class="card" style="margin-bottom:16px"><h3 style="margin:0 0 4px">Profit versus cash</h3>'+
     '<div style="color:var(--tx2);font-size:12px;margin-bottom:12px">A persistent positive gap means profit is being recorded faster than money is arriving. That is the earliest warning of a receivables problem, and it is invisible on the P&amp;L alone.</div>'+
@@ -9429,14 +9446,14 @@ function exportAging(){
 // ═══════════════════════════════════════
 // CASH FLOW FORECAST
 // ═══════════════════════════════════════
-// A forward-looking projection — everything else in ClaraBooks (P&L, Balance
+// A forward-looking projection — everything else in ZenovateBooks (P&L, Balance
 // Sheet, reports) looks backward at what already happened. This walks a
 // day-by-day running balance starting from today's real cash position
 // (computeBalanceSheet), adding scheduled inflows (pending invoices on their
 // due date, active recurring invoices projected out by frequency) and
 // subtracting a flat daily "burn rate" derived from trailing expense
 // history. Deliberately simple — no seasonality, no AP/bills yet since
-// ClaraBooks doesn't track those as their own object — but gives a directional
+// ZenovateBooks doesn't track those as their own object — but gives a directional
 // read on where cash is headed and whether/when it might go negative.
 function advanceRecurDate(dateStr,freq){
   const d=new Date(dateStr);
@@ -9686,7 +9703,7 @@ function exportTax(){
 // "smart hint" computed live from the business's own data (unmatched bank
 // rows, overdue invoices, uncategorized expenses, etc.) so the person
 // closing the month can see at a glance what's likely still open, while the
-// actual checkbox stays a manual, deliberate action — ClaraBooks doesn't
+// actual checkbox stays a manual, deliberate action — ZenovateBooks doesn't
 // auto-check anything for you. State lives in S.checklists['YYYY-MM'].
 function currentMonthKey(){return new Date().toISOString().slice(0,7);}
 function monthKeyOf(dateStr){return(dateStr||'').slice(0,7);}
@@ -9861,7 +9878,7 @@ function updateChecklistBadge(){
 // ═══════════════════════════════════════
 // EXPENSE REIMBURSEMENTS
 // ═══════════════════════════════════════
-// A reimbursement is the one thing in ClaraBooks that is genuinely a
+// A reimbursement is the one thing in ZenovateBooks that is genuinely a
 // liability to a *person* rather than a vendor invoice or a payroll run:
 // somebody spent their own money on the company's behalf, and from the
 // moment you approve it you owe them. The whole design follows from that —
@@ -10083,12 +10100,12 @@ function importSubmittedReport(input){
     try{ payload=JSON.parse(reader.result); }
     catch(e){ alert('That file isn’t readable as a submitted expense report. It should be the .clarabooks.json file the Expense Submitter produced — not a photo or a spreadsheet.'); return; }
     if(!payload||payload.clarabooksExpenseReport!==true||!payload.report||!Array.isArray(payload.report.lines)){
-      alert('That JSON file isn’t an expense report. ClaraBooks backups and expense reports are different files — this looks like something else.');
+      alert('That JSON file isn’t an expense report. ZenovateBooks backups and expense reports are different files — this looks like something else.');
       return;
     }
     if(!payload.report.lines.length){ alert('That report has no expense lines in it.'); return; }
     if(payload.report.lines.length>REIMB_IMPORT_MAX_LINES){
-      alert(`That report has ${payload.report.lines.length} lines, which is more than ClaraBooks will import at once (${REIMB_IMPORT_MAX_LINES}). Ask for it to be split.`);
+      alert(`That report has ${payload.report.lines.length} lines, which is more than ZenovateBooks will import at once (${REIMB_IMPORT_MAX_LINES}). Ask for it to be split.`);
       return;
     }
     pendingReimbImport={payload,fileName:file.name,fileSize:file.size};
@@ -10196,7 +10213,7 @@ function renderReimbImportModal(){
   const submitterFlags=Array.isArray(payload.incomplete)?payload.incomplete:[];
 
   const warn=[];
-  if(noWhy)warn.push(`${noWhy} line${noWhy===1?'':'s'} arrived with no business reason. ClaraBooks won't let the report be approved until that's filled in — you'll be able to edit it, or send it back.`);
+  if(noWhy)warn.push(`${noWhy} line${noWhy===1?'':'s'} arrived with no business reason. ZenovateBooks won't let the report be approved until that's filled in — you'll be able to edit it, or send it back.`);
   if(prep.remapped.length){
     const uniq=[...new Set(prep.remapped.map(r=>r.from))];
     warn.push(`${prep.remapped.length} line${prep.remapped.length===1?'':'s'} used ${uniq.length===1?'a category':'categories'} this business doesn't have (${uniq.map(escH).join(', ')}) — moved to <strong>Other</strong>, re-categorise before approving.`);
@@ -10308,7 +10325,7 @@ async function confirmReimbImport(){
 
   btn.disabled=true; btn.textContent='Importing…';
 
-  // Receipts arrive at a size a human can actually read (~1400px). ClaraBooks
+  // Receipts arrive at a size a human can actually read (~1400px). ZenovateBooks
   // stores its own copy in localStorage alongside every other business, so
   // they get taken down to the same 300px thumbnail as every other receipt in
   // the app before being kept — a dozen full-size photos would eat the storage
@@ -11389,7 +11406,7 @@ function voidPayRun(runId){
   // cleared has to come back. The reimbursement records themselves are never
   // deleted here; only their payment is undone.
   const carried=(S.reimbursements||[]).filter(r=>r.payrollRunId===runId&&r.status==='paid');
-  if(!confirm(`Void this pay run? This removes it from Pay History and deletes the Salaries/Payroll Taxes expenses it posted.${carried.length?`\n\n${carried.length} reimbursement${carried.length===1?'':'s'} paid with this run will go back to approved-and-owed.`:''}\n\nPaystubs already given to employees are not affected by this — only ClaraBooks' own records.`))return;
+  if(!confirm(`Void this pay run? This removes it from Pay History and deletes the Salaries/Payroll Taxes expenses it posted.${carried.length?`\n\n${carried.length} reimbursement${carried.length===1?'':'s'} paid with this run will go back to approved-and-owed.`:''}\n\nPaystubs already given to employees are not affected by this — only ZenovateBooks' own records.`))return;
   const actor=currentActor()||'Payroll';
   carried.forEach(r=>{
     if(r.paymentJeId)S.journalEntries=(S.journalEntries||[]).filter(je=>je.id!==r.paymentJeId);
@@ -11441,7 +11458,7 @@ function openPaystub(runId,employeeId){
         <tfoot><tr style="border-top:2px solid var(--tx)"><td style="padding:10px 0;font-weight:700">Net pay</td><td style="text-align:right;font-weight:700">${bizFmt(line.netPay)}</td><td style="text-align:right;font-weight:700;color:var(--tx2)">${bizFmt(ytd.netPay+line.netPay)}</td></tr>
         ${line.reimbursementTotal>0?`<tr><td style="padding:6px 0;font-weight:700">Total payment</td><td style="text-align:right;font-weight:700">${bizFmt(line.netPay+line.reimbursementTotal)}</td><td></td></tr>`:''}</tfoot>
       </table>
-      <p style="font-size:10px;color:var(--tx2);margin-top:18px">Generated by ClaraBooks. Federal withholding is calculated using the percentage method against the tax tables in Payroll → Tax Settings — verify these against IRS Publication 15-T before relying on this for actual payroll.</p>
+      <p style="font-size:10px;color:var(--tx2);margin-top:18px">Generated by ZenovateBooks. Federal withholding is calculated using the percentage method against the tax tables in Payroll → Tax Settings — verify these against IRS Publication 15-T before relying on this for actual payroll.</p>
     </div>`;
   $('modal-paystub').classList.add('open');
 }
@@ -11640,7 +11657,7 @@ function markTaxTablesVerified(){
   toast('Marked as verified ✓');
 }
 function resetTaxTablesToDefault(){
-  if(!confirm('Reset all federal withholding brackets to ClaraBooks\' seeded defaults? Any edits you\'ve made will be lost.'))return;
+  if(!confirm('Reset all federal withholding brackets to ZenovateBooks\' seeded defaults? Any edits you\'ve made will be lost.'))return;
   const fresh=defaultPayrollTaxTables();
   S.payroll.taxTables={...fresh,employer:undefined};
   saveBizData();
@@ -11650,7 +11667,7 @@ function resetTaxTablesToDefault(){
 
 document.querySelectorAll('.modal-bg').forEach(bg=>bg.addEventListener('click',e=>{if(e.target===bg)bg.classList.remove('open');}));
 
-// If ClaraBooks is open in more than one browser tab at once (easy to do
+// If ZenovateBooks is open in more than one browser tab at once (easy to do
 // with a single local HTML file — e.g. one tab per business), each tab
 // holds its own in-memory copy of META and S. Editing in one tab doesn't
 // update the other tab's memory, so if the other tab later saves (even for
@@ -11661,7 +11678,7 @@ document.querySelectorAll('.modal-bg').forEach(bg=>bg.addEventListener('click',e
 // it happen invisibly.
 window.addEventListener('storage',e=>{
   if(e.key===META_KEY||(e.key&&e.key.indexOf('clarabooks_biz_')===0)){
-    toast('⚠️ ClaraBooks data changed in another tab — refresh this tab before making more changes');
+    toast('⚠️ ZenovateBooks data changed in another tab — refresh this tab before making more changes');
   }
 });
 
@@ -11737,7 +11754,7 @@ async function maybeOfferCloudMigration(){
 }
 
 // Entry point. On a plain (non-cloud) deployment this behaves exactly as
-// ClaraBooks always has — straight into bootWorkspace(), no login screen,
+// ZenovateBooks always has — straight into bootWorkspace(), no login screen,
 // no network calls. On a cloud-configured deployment, it waits for a signed
 // -in user before loading any workspace data.
 async function initApp(){

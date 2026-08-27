@@ -42,6 +42,11 @@ export async function buildApp(opts: BuildOptions = {}): Promise<FastifyInstance
         defaultSrc: ["'self'"],
         // The front end is one file with inline script and style by design.
         scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
+        // helmet's default script-src-attr is 'none' and does NOT inherit
+        // scriptSrc's 'unsafe-inline', so it must be opened separately or every
+        // onclick="..." attribute in the front end (there are many) is silently
+        // blocked by the browser with no server-side symptom at all.
+        scriptSrcAttr: ["'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'blob:'],
         connectSrc: ["'self'", 'https://*.amazonaws.com'],

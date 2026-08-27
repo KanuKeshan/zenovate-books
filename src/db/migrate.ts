@@ -4,6 +4,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getPool, closePool } from './pool.js';
 
+// Same as server.ts: pick up .env if present, without overriding an env var
+// that is already set.
+try {
+  process.loadEnvFile();
+} catch {
+  /* no .env file — fine */
+}
+
 const here = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(here, '..', '..', 'migrations');
 

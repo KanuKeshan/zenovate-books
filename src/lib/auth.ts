@@ -1,5 +1,5 @@
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual, scryptSync } from 'node:crypto';
 import { getPool } from '../db/pool.js';
 import { HttpError } from './errors.js';
 
@@ -76,6 +76,95 @@ function verifyDevToken(token: string): JWTPayload | null {
   }
 }
 
+/**
+ * A small named-user login for the case in between "just me on my laptop"
+ * (DEV_AUTH_SECRET, any email, no password) and "real Cognito deployment"
+ * (AWS account, hosted pool, Terraform that does not exist yet). It is meant
+ * for a handful of known people — an owner and their accountant — reached
+ * with a real password, not an email typed into a form.
+ *
+ * Unlike devAuthEnabled(), this is allowed to be on in production: the
+ * password is actually checked. What is NOT allowed is DEV_AUTH_SECRET being
+ * set alongside it — assertProductionAuthSane() still refuses to boot if a
+ * production deployment leaves the no-password door open.
+ */
+export interface LocalAuthUser {
+  email: string;
+  name: string;
+  /** `<salt-hex>:<hash-hex>`, from node:crypto scrypt. Never a plaintext password. */
+  scryptHash: string;
+}
+
+let localUsersCache: LocalAuthUser[] | null = null;
+export function localAuthUsers(): LocalAuthUser[] {
+  if (localUsersCache) return localUsersCache;
+  const raw = process.env.LOCAL_AUTH_USERS;
+  if (!raw) return (localUsersCache = []);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error('LOCAL_AUTH_USERS is not valid JSON');
+  }
+  if (!Array.isArray(parsed)) throw new Error('LOCAL_AUTH_USERS must be a JSON array');
+  localUsersCache = parsed.map((u, i) => {
+    const rec = u as Record<string, unknown>;
+    if (typeof rec.email !== 'string' || typeof rec.scryptHash !== 'string') {
+      throw new Error(`LOCAL_AUTH_USERS[${i}] must have "email" and "scryptHash"`);
+    }
+    return { email: rec.email.toLowerCase(), name: typeof rec.name === 'string' ? rec.name : rec.email, scryptHash: rec.scryptHash };
+  });
+  return localUsersCache;
+}
+
+export function localAuthEnabled(): boolean {
+  return !!process.env.LOCAL_AUTH_SECRET && localAuthUsers().length > 0;
+}
+
+/** A fixed dummy hash, compared against on every failed lookup so that an
+ *  unknown email costs the same wall-clock time as a wrong password — the
+ *  same reasoning as Cognito's own generic "sign-in failed" error. */
+const DUMMY_SCRYPT = scryptSync('not-a-real-password', 'no-such-salt', 64);
+
+export function verifyLocalPassword(email: string, password: string): LocalAuthUser | null {
+  const user = localAuthUsers().find((u) => u.email === email.toLowerCase());
+  const [saltHex, hashHex] = (user?.scryptHash ?? '').split(':');
+  const salt = saltHex ? Buffer.from(saltHex, 'hex') : Buffer.from('no-such-salt');
+  const expected = hashHex ? Buffer.from(hashHex, 'hex') : DUMMY_SCRYPT;
+  const actual = scryptSync(password, salt, 64);
+  const match = actual.length === expected.length && timingSafeEqual(actual, expected);
+  return user && match ? user : null;
+}
+
+export function mintLocalToken(claims: { sub: string; email: string; name?: string }): string {
+  if (!localAuthEnabled()) throw new Error('local auth is not enabled');
+  const body = Buffer.from(JSON.stringify({ ...claims, iat: Date.now() })).toString('base64url');
+  const sig = createHmac('sha256', process.env.LOCAL_AUTH_SECRET!).update(body).digest('base64url');
+  return `local.${body}.${sig}`;
+}
+
+function verifyLocalToken(token: string): JWTPayload | null {
+  if (!localAuthEnabled() || !token.startsWith('local.')) return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  const [, body, sig] = parts as [string, string, string];
+  const expected = createHmac('sha256', process.env.LOCAL_AUTH_SECRET!).update(body).digest('base64url');
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as JWTPayload;
+    // Re-check membership on every verification, not just at login: removing
+    // someone from LOCAL_AUTH_USERS and restarting the server should revoke
+    // any token they are still holding, not just stop them logging in again.
+    const email = String(payload['email'] ?? '').toLowerCase();
+    if (!localAuthUsers().some((u) => u.email === email)) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 async function verifyCognitoToken(token: string): Promise<JWTPayload> {
   const region = requiredEnv('AWS_REGION');
   const poolId = requiredEnv('COGNITO_USER_POOL_ID');
@@ -100,7 +189,7 @@ async function verifyCognitoToken(token: string): Promise<JWTPayload> {
  * and audit trails off a stable internal id.
  */
 export async function principalFromToken(token: string): Promise<Principal> {
-  let payload: JWTPayload | null = verifyDevToken(token);
+  let payload: JWTPayload | null = verifyDevToken(token) ?? verifyLocalToken(token);
   if (!payload) {
     try {
       payload = await verifyCognitoToken(token);
@@ -147,6 +236,9 @@ export function assertProductionAuthSane(): void {
   if (process.env.DEV_AUTH_SECRET) {
     throw new Error('DEV_AUTH_SECRET is set in production. Refusing to start.');
   }
+  // Local auth (named users, real passwords) is an acceptable production
+  // authentication method on its own — it does not require Cognito too.
+  if (localAuthEnabled()) return;
   for (const k of ['COGNITO_USER_POOL_ID', 'COGNITO_CLIENT_ID', 'AWS_REGION']) {
     if (!process.env[k]) throw new Error(`${k} must be set in production. Refusing to start.`);
   }

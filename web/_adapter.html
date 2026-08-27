@@ -1,5 +1,5 @@
 <!-- ═══════════════════════════════════════
-     CLOUD SYNC (ClaraBooks API) — isolated module block.
+     CLOUD SYNC (ZenovateBooks API) — isolated module block.
      The main script below never talks to the network directly; it only calls
      the small surface exposed on window.CB_FIREBASE. The name is kept from the
      Firebase era on purpose: every call site in the 11,000 lines below already
@@ -15,7 +15,7 @@ function unconfigured(reason) {
   return {
     configured: false, mode: 'off', reason, workspaceId: null,
     onAuthChange(cb) { cb(null); },
-    async signIn() { throw new Error('This copy of ClaraBooks runs locally — there is no account to sign in to.'); },
+    async signIn() { throw new Error('This copy of ZenovateBooks runs locally — there is no account to sign in to.'); },
     async signOut() {},
     async sendPasswordReset() { throw new Error('Password resets are handled by the hosted version.'); },
     async getDoc() { return null; },
@@ -40,7 +40,7 @@ async function boot() {
     const r = await fetch(API + '/auth/config', { credentials: 'same-origin' });
     if (r.ok) cfg = await r.json();
   } catch { /* no API on this origin — fall through to local mode */ }
-  if (!cfg) { window.CB_FIREBASE = unconfigured('no ClaraBooks API on this origin'); return; }
+  if (!cfg) { window.CB_FIREBASE = unconfigured('no ZenovateBooks API on this origin'); return; }
 
   let idToken = null;
   let expiresAt = 0;
@@ -192,7 +192,7 @@ async function boot() {
     },
 
     async sendPasswordReset() {
-      throw new Error('Use "Forgot password" on the sign-in page — it is handled by AWS, not by ClaraBooks.');
+      throw new Error('Use "Forgot password" on the sign-in page — it is handled by AWS, not by ZenovateBooks.');
     },
 
     async getDoc(path) {

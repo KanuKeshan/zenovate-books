@@ -4,6 +4,16 @@ import { migrate } from './db/migrate.js';
 import { closePool } from './db/pool.js';
 import { registerRoutes } from './routes/index.js';
 
+// Picks up .env in the working directory if one exists. A variable already
+// present in the environment always wins — this only fills gaps, so a test
+// runner or scripts/e2e.sh that export their own DATABASE_URL etc. are
+// unaffected either way.
+try {
+  process.loadEnvFile();
+} catch {
+  /* no .env file — fine, env vars may be set some other way (CI, prod) */
+}
+
 async function main(): Promise<void> {
   // Refuse to start rather than start wrong. A production process that would
   // accept development tokens must never reach the point of listening.

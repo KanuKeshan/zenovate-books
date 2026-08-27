@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { authenticate } from '../app.js';
 import { HttpError, badRequest } from '../lib/errors.js';
 import { audit } from '../lib/audit.js';
-import { devAuthEnabled, isProduction } from '../lib/auth.js';
+import { devAuthEnabled, isProduction, localAuthEnabled, verifyLocalPassword, mintLocalToken, localAuthUsers } from '../lib/auth.js';
 
 /**
  * Token handling, and the reasoning behind the shape of it.
@@ -84,7 +84,7 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
    * configured, because a single-page app cannot keep one.
    */
   app.get('/auth/config', async () => ({
-    mode: devAuthEnabled() ? 'dev' : 'cognito',
+    mode: devAuthEnabled() ? 'dev' : localAuthEnabled() ? 'local' : 'cognito',
     domain: process.env.COGNITO_DOMAIN ?? null,
     clientId: process.env.COGNITO_CLIENT_ID ?? null,
     region: process.env.AWS_REGION ?? null,
@@ -145,6 +145,19 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
       const { mintDevToken } = await import('../lib/auth.js');
       return { idToken: mintDevToken({ sub: `dev-${email}`, email, name: email }), expiresIn: 3600 };
     }
+    // Local sessions refresh through the same cookie too. Re-checking
+    // membership here (not just at login) means removing someone from
+    // LOCAL_AUTH_USERS and restarting the server ends their session within
+    // the hour, not only stops them logging in again.
+    if (localAuthEnabled() && refresh.startsWith('localrt.')) {
+      const email = Buffer.from(refresh.slice('localrt.'.length), 'base64url').toString('utf8');
+      const user = localAuthUsers().find((u) => u.email === email.toLowerCase());
+      if (!user) {
+        clearRefreshCookie(reply);
+        throw new HttpError(401, 'not_authenticated', 'Your session has ended. Sign in again.');
+      }
+      return { idToken: mintLocalToken({ sub: `local-${user.email}`, email: user.email, name: user.name }), expiresIn: 3600 };
+    }
     const tokens = await cognitoToken({
       grant_type: 'refresh_token',
       client_id: process.env.COGNITO_CLIENT_ID ?? '',
@@ -192,4 +205,27 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     setRefreshCookie(reply, 'devrt.' + Buffer.from(body.email, 'utf8').toString('base64url'), 7 * 24 * 3600);
     return { idToken: token, expiresIn: 3600, mode: 'dev' };
   });
+
+  /**
+   * Real sign-in for a small, named set of people (owner + accountant) when
+   * there is no Cognito deployment. A real password, checked server-side with
+   * a salted hash — never logged, never stored in plain text, never sent
+   * anywhere but here. Rate-limited far tighter than the rest of the API:
+   * this is the one endpoint on the whole server where someone gets to guess.
+   */
+  app.post(
+    '/auth/local-login',
+    { config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } },
+    async (req, reply) => {
+      if (!localAuthEnabled()) {
+        return reply.status(404).send({ error: 'not_found', message: 'No such endpoint.' });
+      }
+      const body = z.object({ email: z.string().email(), password: z.string().min(1).max(200) }).strict().parse(req.body);
+      const user = verifyLocalPassword(body.email, body.password);
+      if (!user) throw new HttpError(401, 'sign_in_failed', 'That email or password is incorrect.');
+      const token = mintLocalToken({ sub: `local-${user.email}`, email: user.email, name: user.name });
+      setRefreshCookie(reply, 'localrt.' + Buffer.from(user.email, 'utf8').toString('base64url'), 30 * 24 * 3600);
+      return { idToken: token, expiresIn: 3600, mode: 'local' };
+    },
+  );
 }

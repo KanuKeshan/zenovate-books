@@ -6,14 +6,14 @@
  * product is broken. This is the test that fails when the thing a person
  * actually does stops working.
  */
-import { chromium } from '/home/claude/.npm-global/lib/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';
 
 const BASE = process.env.E2E_BASE ?? 'http://127.0.0.1:8099';
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) { pass++; console.log('  ✓ ' + m); } else { fail++; console.log('  ✗ ' + m); } };
 const near = (a, b, m, tol = 0.01) => ok(a != null && Math.abs(a - b) <= tol, `${m} (want ${b}, got ${a})`);
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push('PAGEERROR: ' + e.message));

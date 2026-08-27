@@ -8,10 +8,16 @@ import { mintDevToken } from '../src/lib/auth.js';
 // between tests rather than recreating the schema keeps them fast, and running
 // the migrations once proves the migrations themselves work — a schema built by
 // hand in a fixture is a schema nobody has proved is deployable.
-process.env.DATABASE_URL ??= 'postgres://claude@127.0.0.1:5433/clarabooks_test';
-process.env.DEV_AUTH_SECRET ??= 'test-only-secret-not-for-any-real-environment';
-process.env.NODE_ENV ??= 'test';
-process.env.AWS_REGION ??= 'us-east-1';
+// `??=` only fills a variable that is completely unset. That is not enough
+// once a real .env can legitimately set DEV_AUTH_SECRET to an empty string
+// (to turn dev auth off) — an empty string is not nullish, so `??=` would
+// leave it empty and every test that signs in would fail. Treat "unset OR
+// empty" as "needs the test default" instead.
+const fallback = (key: string, value: string) => { if (!process.env[key]) process.env[key] = value; };
+fallback('DATABASE_URL', 'postgres://claude@127.0.0.1:5433/clarabooks_test');
+fallback('DEV_AUTH_SECRET', 'test-only-secret-not-for-any-real-environment');
+fallback('NODE_ENV', 'test');
+fallback('AWS_REGION', 'us-east-1');
 
 let migrated = false;
 

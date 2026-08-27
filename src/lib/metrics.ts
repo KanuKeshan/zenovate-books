@@ -7,7 +7,7 @@
  * entry, so a spike on a graph and the requests that caused it are the same
  * records rather than two systems you have to correlate by eye.
  */
-const NAMESPACE = process.env.METRICS_NAMESPACE ?? 'ClaraBooks';
+const NAMESPACE = process.env.METRICS_NAMESPACE ?? 'ZenovateBooks';
 
 export interface RequestMetric {
   route: string;
