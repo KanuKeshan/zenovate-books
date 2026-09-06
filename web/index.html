@@ -335,6 +335,7 @@ tr:hover td{background:var(--bg2)}
     <div class="nav-item" onclick="nav('clients',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clients</div>
     <div class="nav-item" onclick="nav('recurring',this)"><svg class="icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>Recurring</div>
     <div class="nav-item" onclick="nav('categories',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg>Categories</div>
+    <div class="nav-item" onclick="nav('budget',this)"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>Budget</div>
     <div class="nav-divider"></div>
     <div class="nav-item bank-nav" onclick="nav('bank',this)"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20z"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="8" y1="14" x2="16" y2="14"/></svg>Bank Import</div>
     <div class="nav-item" onclick="nav('migrate',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7"/><polyline points="8 8 12 4 16 8"/><line x1="12" y1="4" x2="12" y2="16"/></svg>Migrate from QuickBooks</div>
@@ -781,6 +782,13 @@ tr:hover td{background:var(--bg2)}
         </div>
       </div>
     </div>
+    <!-- BUDGET -->
+    <div id="page-budget" class="page">
+      <div class="topbar"><h1>Budget</h1>
+        <div class="topbar-actions" style="font-size:12px;color:var(--tx2)" id="budget-month-label"></div>
+      </div>
+      <div class="content" id="budget-content"></div>
+    </div>
     <!-- ALERTS -->
     <div id="page-alerts" class="page">
       <div class="topbar"><h1>Alerts &amp; Reminders</h1><button class="btn" onclick="renderAlerts()"><svg class="icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg> Refresh</button></div>
@@ -927,7 +935,7 @@ tr:hover td{background:var(--bg2)}
         </div>
       </div>
       <div class="form-row"><label>Business name</label><input id="biz-name-input" placeholder="e.g. Acme Design Studio" oninput="updateLogoPlaceholder('new',this.value)"></div>
-      <div class="form-row"><label>Business type</label><select id="biz-type-input"><option>Service-based</option><option>Product/Retail</option><option>SaaS/Subscription</option><option>Freelance/Consulting</option><option>E-commerce</option><option>Non-profit</option><option>Other</option></select></div>
+      <div class="form-row"><label>Business type</label><select id="biz-type-input"><option>Service-based</option><option>Product/Retail</option><option>SaaS/Subscription</option><option>Freelance/Consulting</option><option>E-commerce</option><option>Non-profit</option><option>Personal / Household</option><option>Other</option></select></div>
       <div class="form-row"><label>Where the books live</label><select id="biz-source-input" onchange="onBizSourceChange('new')"><option value="ledger">In ZenovateBooks — invoices, expenses, bank feed</option><option value="statements">Analysis only — I'll upload their financial statements</option></select>
         <div id="biz-source-note-new" style="font-size:12px;color:var(--tx2);margin-top:6px;line-height:1.5;display:none">Analysis-only businesses skip invoicing, expenses and payroll entirely. You upload the profit &amp; loss, balance sheet and cash flow statement, and the FP&amp;A page builds every metric from those. You can switch this later.</div>
       </div>
@@ -968,7 +976,7 @@ tr:hover td{background:var(--bg2)}
         </div>
       </div>
       <div class="form-row"><label>Business name</label><input id="edit-biz-name" placeholder="Business name" oninput="updateLogoPlaceholder('edit',this.value)"></div>
-      <div class="form-row"><label>Business type</label><select id="edit-biz-type"><option>Service-based</option><option>Product/Retail</option><option>SaaS/Subscription</option><option>Freelance/Consulting</option><option>E-commerce</option><option>Non-profit</option><option>Other</option></select></div>
+      <div class="form-row"><label>Business type</label><select id="edit-biz-type"><option>Service-based</option><option>Product/Retail</option><option>SaaS/Subscription</option><option>Freelance/Consulting</option><option>E-commerce</option><option>Non-profit</option><option>Personal / Household</option><option>Other</option></select></div>
       <div class="form-row"><label>Where the books live</label><select id="edit-biz-source" onchange="onBizSourceChange('edit')"><option value="ledger">In ZenovateBooks — invoices, expenses, bank feed</option><option value="statements">Analysis only — uploaded financial statements</option></select>
         <div id="biz-source-note-edit" style="font-size:12px;color:var(--tx2);margin-top:6px;line-height:1.5;display:none">Switching to analysis-only hides invoicing, expenses and payroll. Nothing already recorded is deleted — switch back and it is all still there.</div>
       </div>
@@ -1746,6 +1754,7 @@ const DEFAULT_INCOME_CATS_BY_TYPE={
   'Freelance/Consulting':['Consulting Fees','Other Income'],
   'E-commerce':['Product Sales','Shipping Income','Other Income'],
   'Non-profit':['Donations','Grants','Program Revenue','Other Income'],
+  'Personal / Household':['Salary/Wages','Other Income'],
   'Other':['Revenue','Other Income'],
 };
 const BASE_EXPENSE_CATS=['Software','Marketing','Travel','Rent & Utilities','Salaries','Payroll Taxes','Professional Services','Hardware'];
@@ -1754,6 +1763,11 @@ const EXTRA_EXPENSE_CATS_BY_TYPE={
   'E-commerce':['Cost of Goods Sold','Shipping & Fulfillment','Payment Processing Fees'],
   'Non-profit':['Program Expenses'],
 };
+// A household's spending categories share nothing with BASE_EXPENSE_CATS
+// (nobody's tracking "Payroll Taxes" or "Professional Services" for their
+// own family) — so Personal/Household replaces the base list entirely
+// rather than extending it, unlike every other type above.
+const PERSONAL_EXPENSE_CATS=['Groceries','Housing (Rent/Mortgage)','Utilities','Transportation','Insurance','Healthcare','Entertainment','Subscriptions','Dining Out','Personal Care','Savings & Investments'];
 // Basic Balance Sheet accounts every business starts with — Cash and
 // Accounts Receivable are populated automatically (from your bank balance
 // and unpaid invoices respectively); Accounts Payable and Owner's Equity
@@ -1949,12 +1963,19 @@ function calcPayrollWithholding(emp,grossPay,payDate,periodsPerYear){
 
 function defaultCategoriesForType(type){
   const income=(DEFAULT_INCOME_CATS_BY_TYPE[type]||DEFAULT_INCOME_CATS_BY_TYPE['Other']).slice();
-  const expense=[...BASE_EXPENSE_CATS,...(EXTRA_EXPENSE_CATS_BY_TYPE[type]||[]),'Other'];
-  return{income,expense,asset:DEFAULT_ASSET_CATS.slice(),liability:DEFAULT_LIABILITY_CATS.slice(),equity:DEFAULT_EQUITY_CATS.slice(),revenueReturn:DEFAULT_REVENUE_RETURN_CATS.slice()};
+  const personal=type==='Personal / Household';
+  const expense=personal
+    ?[...PERSONAL_EXPENSE_CATS,'Other']
+    :[...BASE_EXPENSE_CATS,...(EXTRA_EXPENSE_CATS_BY_TYPE[type]||[]),'Other'];
+  // DEFAULT_LIABILITY_CATS includes 'Employee Reimbursements Payable', which
+  // only ever gets used by the Reimbursements feature — hidden entirely for
+  // Personal/Household, so nobody reimburses themselves as an employee here.
+  const liability=personal?['Accounts Payable']:DEFAULT_LIABILITY_CATS.slice();
+  return{income,expense,asset:DEFAULT_ASSET_CATS.slice(),liability,equity:DEFAULT_EQUITY_CATS.slice(),revenueReturn:DEFAULT_REVENUE_RETURN_CATS.slice()};
 }
 
 function emptyBizData(type){
-  return{invoices:[],expenses:[],clients:[],recurring:[],bankTxns:[],categories:defaultCategoriesForType(type),categoryMemory:{},statementArchive:[],journalEntries:[],openingBalance:null,checklists:{},payroll:emptyPayrollData(),payees:[],reimbursements:[],reimbursementSettings:emptyReimbursementSettings(),fpaSettings:emptyFpaSettings(),statementData:emptyStatementData()};
+  return{invoices:[],expenses:[],clients:[],recurring:[],bankTxns:[],categories:defaultCategoriesForType(type),categoryMemory:{},statementArchive:[],journalEntries:[],openingBalance:null,checklists:{},payroll:emptyPayrollData(),payees:[],reimbursements:[],reimbursementSettings:emptyReimbursementSettings(),fpaSettings:emptyFpaSettings(),statementData:emptyStatementData(),budgets:{}};
 }
 // Shared by both the localStorage path and the Firestore path so a business
 // loaded from either source gets identical backfilling/defaulting — the
@@ -1977,15 +1998,20 @@ function normalizeBizData(d,biz){
       // have it in their saved category list, so posting a payroll run's
       // employer-tax expense under that category would be using a category
       // that doesn't show up anywhere else in the UI. Back-fill it in,
-      // same treatment as the Balance Sheet accounts above.
-      if(Array.isArray(categories.expense)&&!categories.expense.includes('Payroll Taxes'))categories.expense.push('Payroll Taxes');
+      // same treatment as the Balance Sheet accounts above. Skipped for
+      // Personal/Household, which hides Payroll entirely — there is no
+      // payroll run that will ever post to this category, so back-filling
+      // it just puts a business-only line in the middle of a grocery list.
+      const isPersonal=biz&&biz.type==='Personal / Household';
+      if(!isPersonal&&Array.isArray(categories.expense)&&!categories.expense.includes('Payroll Taxes'))categories.expense.push('Payroll Taxes');
       // Same treatment for the reimbursement liability account: businesses
       // created before this feature existed have a liability list containing
       // only Accounts Payable, and computeBalanceSheet derives "other
       // liabilities" purely from this list — so without the back-fill an
       // approved reimbursement would post a journal entry to an account the
-      // Balance Sheet never renders, silently hiding money you owe.
-      if(Array.isArray(categories.liability)&&!categories.liability.includes(REIMBURSEMENT_LIABILITY_ACCOUNT))categories.liability.push(REIMBURSEMENT_LIABILITY_ACCOUNT);
+      // Balance Sheet never renders, silently hiding money you owe. Same
+      // Personal/Household exception — Reimbursements is hidden for them too.
+      if(!isPersonal&&Array.isArray(categories.liability)&&!categories.liability.includes(REIMBURSEMENT_LIABILITY_ACCOUNT))categories.liability.push(REIMBURSEMENT_LIABILITY_ACCOUNT);
       // Reimbursement settings are merged rather than replaced wholesale, so
       // a business that saved settings before a new field existed (e.g. a
       // newly-published IRS mileage year) picks up the new default without
@@ -2031,6 +2057,11 @@ function normalizeBizData(d,biz){
         // stmtBuildPeriods() iterating over undefined.
         statementData:{...emptyStatementData(),...((d.statementData&&typeof d.statementData==='object')?d.statementData:{}),
           periods:Array.isArray(d.statementData&&d.statementData.periods)?d.statementData.periods:[]},
+        // Monthly $ per expense category — stays in effect until changed, not
+        // re-entered each month. Businesses saved before this existed just
+        // get an empty map (every category reads as "no budget set" rather
+        // than crashing renderBudgetPage on an undefined lookup).
+        budgets:(d.budgets&&typeof d.budgets==='object')?d.budgets:{},
       };
 }
 
@@ -2143,6 +2174,75 @@ function renderCategoriesPage(){
   fill('liability-cat-list','liability','liability accounts');
   fill('equity-cat-list','equity','equity accounts');
 }
+
+// ═══════════════════════════════════════
+// BUDGET
+// ═══════════════════════════════════════
+// A monthly dollar amount per expense category. Set once, stays in effect
+// every month until changed — matching how people actually think about a
+// budget ("we spend about $X/month on groceries"), not a fresh plan you
+// re-enter every period. Works the same for a business or a household;
+// nothing here depends on which.
+function currentMonthRange(){
+  const now=new Date();
+  const iso=d=>d.toISOString().slice(0,10);
+  return{start:iso(new Date(now.getFullYear(),now.getMonth(),1)),end:iso(new Date(now.getFullYear(),now.getMonth()+1,0))};
+}
+function budgetActualsByCategory(){
+  const{start,end}=currentMonthRange();
+  const totals={};
+  (S.expenses||[]).forEach(e=>{
+    if(!e.date||e.date<start||e.date>end)return;
+    const cat=e.cat||'Other';
+    totals[cat]=(totals[cat]||0)+Number(e.amount||0);
+  });
+  return totals;
+}
+function renderBudgetPage(){
+  const el=$('budget-content');
+  if(!el)return;
+  const{start}=currentMonthRange();
+  const monthLabel=new Date(start+'T00:00:00').toLocaleString('default',{month:'long',year:'numeric'});
+  const lbl=$('budget-month-label');
+  if(lbl)lbl.textContent=monthLabel;
+  S.budgets=S.budgets||{};
+  const cats=(S.categories&&S.categories.expense)||[];
+  const actuals=budgetActualsByCategory();
+  let totalBudget=0,totalActual=0;
+  const rows=cats.map(cat=>{
+    const budget=Number(S.budgets[cat]||0);
+    const actual=Number(actuals[cat]||0);
+    totalBudget+=budget;totalActual+=actual;
+    const pct=budget>0?Math.min(100,Math.round(actual/budget*100)):(actual>0?100:0);
+    const over=budget>0&&actual>budget;
+    const remaining=budget-actual;
+    return`<tr>
+      <td>${escH(cat)}</td>
+      <td><input type="number" min="0" step="0.01" value="${budget||''}" placeholder="0.00" style="width:100px;padding:5px 7px;border:1px solid var(--bd2);border-radius:5px;font-size:13px;background:var(--bg);color:var(--tx)" onchange="setBudget(${escH(JSON.stringify(cat))},this.value)"></td>
+      <td>${bizFmt(actual)}</td>
+      <td style="min-width:140px"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%${over?';background:var(--red)':''}"></div></div></td>
+      <td style="color:${remaining<0?'var(--red)':'var(--tx2)'}">${budget>0?(remaining>=0?bizFmt(remaining)+' left':bizFmt(-remaining)+' over'):'—'}</td>
+    </tr>`;
+  }).join('');
+  el.innerHTML=`
+    <div class="metrics" style="margin-bottom:20px">
+      <div class="metric"><div class="metric-label">Budgeted (${escH(monthLabel)})</div><div class="metric-value">${bizFmt(totalBudget)}</div></div>
+      <div class="metric"><div class="metric-label">Actual spend</div><div class="metric-value ${totalBudget>0&&totalActual>totalBudget?'red':''}">${bizFmt(totalActual)}</div></div>
+      <div class="metric"><div class="metric-label">Remaining</div><div class="metric-value ${totalBudget-totalActual<0?'red':'green'}">${bizFmt(totalBudget-totalActual)}</div></div>
+    </div>
+    ${cats.length?`<div class="table-wrap"><table><thead><tr><th>Category</th><th>Monthly budget</th><th>Spent this month</th><th>Progress</th><th>Remaining</th></tr></thead><tbody>${rows}</tbody></table></div>`
+      :`<p class="empty">No expense categories yet — add some in Categories first.</p>`}
+  `;
+}
+function setBudget(cat,value){
+  S.budgets=S.budgets||{};
+  const n=Number(value);
+  if(!value||isNaN(n)||n<0)delete S.budgets[cat];
+  else S.budgets[cat]=n;
+  saveBizData();
+  renderBudgetPage();
+}
+
 function saveBizData(){
   if(!META.activeBizId)return true;
   try{
@@ -2744,6 +2844,11 @@ function saveEditBusiness(){
     }
     $('sidebar-biz-name').textContent=biz.name;
     $('dash-title').textContent=biz.name;
+    // Switching type to/from Personal/Household must show/hide the
+    // business-only nav items immediately, not just on next reopen —
+    // otherwise "Invoices" sits there clickable-but-nonsensical until
+    // whoever's looking happens to navigate away and back.
+    applyDataSourceUi();
   }
   renderBizGrid();
   toast(name+' updated ✓');
@@ -2998,6 +3103,7 @@ function nav(page,el){
   if(page==='fpa'){if(!fpaTab)fpaTab='overview';renderFpaPage();}
   if(page==='stmtdata')renderStmtPage();
   if(page==='migrate')renderMigratePage();
+  if(page==='budget')renderBudgetPage();
 }
 
 // ═══════════════════════════════════════
@@ -3030,7 +3136,12 @@ function render(){
   S.statementData=S.statementData||emptyStatementData();
   S.statementData.periods=Array.isArray(S.statementData.periods)?S.statementData.periods:[];
   S.reimbursementSettings.mileageRates=S.reimbursementSettings.mileageRates||{...IRS_MILEAGE_RATES};
-  if(!S.categories.liability.includes(REIMBURSEMENT_LIABILITY_ACCOUNT))S.categories.liability.push(REIMBURSEMENT_LIABILITY_ACCOUNT);
+  // Third copy of the same back-fill as normalizeBizData (this one runs on
+  // every render(), not just on load) — needs the same Personal/Household
+  // exception, or a household's liability list grows this business-only
+  // account back the moment the page re-renders, no matter how many times
+  // it's removed upstream.
+  if(activeBiz().type!=='Personal / Household'&&!S.categories.liability.includes(REIMBURSEMENT_LIABILITY_ACCOUNT))S.categories.liability.push(REIMBURSEMENT_LIABILITY_ACCOUNT);
   renderDashboard();renderInvoices();renderExpenses();
   renderLedger();renderPL();renderClients();renderRecurring();populateDropdowns();
   // Update alert badge silently
@@ -8138,14 +8249,23 @@ function onBizSourceChange(ctx){
 // not cosmetic — a statement-fed business rendering a P&L of zeros next to an
 // FP&A page showing real revenue is the kind of contradiction that makes someone
 // stop trusting the whole app.
-const STMT_HIDDEN_PAGES=['dashboard','invoices','expenses','ledger','journal','pl','balancesheet','clients','recurring','categories','bank','aging','cashflow','tax','payroll','reimbursements','checklist','alerts','migrate'];
+const STMT_HIDDEN_PAGES=['dashboard','invoices','expenses','ledger','journal','pl','balancesheet','clients','recurring','categories','bank','aging','cashflow','tax','payroll','reimbursements','checklist','alerts','migrate','budget'];
+// Pages that make no sense for a household's books: nobody invoices their
+// family, runs payroll on themselves, or needs a quarterly business tax
+// estimate off $0 of revenue. Same "hide it, don't just leave it blank"
+// reasoning as STMT_HIDDEN_PAGES above — a Personal/Household business
+// showing an AR Aging report that's permanently empty reads as broken, not
+// as "doesn't apply to you."
+const PERSONAL_HIDDEN_PAGES=['invoices','clients','recurring','aging','payroll','reimbursements','tax','fpa','migrate','checklist'];
 function applyDataSourceUi(){
   const stmt=fpaIsStatementBiz();
+  const personal=activeBiz().type==='Personal / Household';
   document.querySelectorAll('.sidebar .nav-item').forEach(el=>{
     const m=(el.getAttribute('onclick')||'').match(/nav\('([a-z]+)'/);
     if(!m)return;
     if(m[1]==='stmtdata'){el.style.display=stmt?'':'none';return;}
-    el.style.display=(stmt&&STMT_HIDDEN_PAGES.indexOf(m[1])>=0)?'none':'';
+    const hidden=(stmt&&STMT_HIDDEN_PAGES.indexOf(m[1])>=0)||(personal&&PERSONAL_HIDDEN_PAGES.indexOf(m[1])>=0);
+    el.style.display=hidden?'none':'';
   });
   // With most of the nav hidden the group dividers would stack up against each
   // other with nothing between them, which reads as a rendering bug.
