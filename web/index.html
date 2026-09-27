@@ -1010,6 +1010,28 @@ tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<div class="modal-bg" id="modal-access">
+  <div class="modal">
+    <div class="modal-header">Manage access <button class="btn sm" onclick="closeModal('access')"><svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="access-biz-id">
+      <p style="font-size:12px;color:var(--tx2);margin:0 0 12px">Who can open <strong id="access-biz-name"></strong>. Accountant can edit everything but can't manage who has access; Read-only can look but not change anything.</p>
+      <div id="access-list" style="margin-bottom:16px"></div>
+      <p style="font-size:11px;color:var(--tx2);margin:0 0 10px;padding-top:10px;border-top:1px solid var(--bd)">Add someone — they need to have signed in to ZenovateBooks at least once already (with their own login) before you can grant them access.</p>
+      <div class="form-row"><label>Email</label><input type="email" id="access-email-input" placeholder="accountant@example.com"></div>
+      <div class="form-row"><label>Role</label>
+        <select id="access-role-input">
+          <option value="accountant">Accountant — can view and edit</option>
+          <option value="readonly">Read-only — can view only</option>
+          <option value="owner">Owner — full control, including access</option>
+        </select>
+      </div>
+      <div id="access-error" style="display:none;font-size:12px;color:var(--red);margin-bottom:8px"></div>
+      <button class="btn primary" onclick="grantBusinessAccess()">Grant access</button>
+    </div>
+  </div>
+</div>
+
 <!-- Invoice -->
 <div class="modal-bg" id="modal-invoice">
   <div class="modal">
@@ -1507,6 +1529,11 @@ async function boot() {
     workspaceId: 'w',
     startLogin,
     onAuthChange(cb) { listeners.push(cb); cb(user); },
+    // Raw authenticated fetch for endpoints that aren't a Firestore-shaped
+    // doc (getDoc/setDoc) — business access management, for one. Reuses the
+    // same api() this module already uses for everything else, so it gets
+    // the same token handling, 401 handling, and error shaping for free.
+    apiRequest: api,
 
     async signIn(email, password) {
       if (cfg.mode === 'dev') {
@@ -2855,6 +2882,75 @@ function saveEditBusiness(){
 }
 
 // ═══════════════════════════════════════
+// BUSINESS ACCESS (sharing with an accountant, etc.)
+// ═══════════════════════════════════════
+function openAccessModal(id){
+  const biz=META.businesses.find(b=>b.id===id);
+  if(!biz)return;
+  $('access-biz-id').value=id;
+  $('access-biz-name').textContent=biz.name;
+  $('access-email-input').value='';
+  $('access-role-input').value='accountant';
+  $('access-error').style.display='none';
+  $('access-list').innerHTML='<p style="font-size:12px;color:var(--tx2)">Loading…</p>';
+  $('modal-access').classList.add('open');
+  loadAccessList(id);
+}
+
+async function loadAccessList(id){
+  try{
+    const res=await window.CB_FIREBASE.apiRequest('/businesses/'+id+'/access');
+    renderAccessList(id,res.access||[]);
+  }catch(err){
+    $('access-list').innerHTML='<p style="font-size:12px;color:var(--red)">Could not load access list: '+escH(err.message||err)+'</p>';
+  }
+}
+
+function renderAccessList(bizId,list){
+  const roleLabel={owner:'Owner',accountant:'Accountant',readonly:'Read-only'};
+  const ownerCount=list.filter(a=>a.role==='owner').length;
+  $('access-list').innerHTML=list.map(a=>{
+    const isLastOwner=a.role==='owner'&&ownerCount<=1;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd)">
+      <div>
+        <div style="font-size:13px;font-weight:600">${escH(a.name||a.email)}</div>
+        <div style="font-size:11px;color:var(--tx2)">${escH(a.email)} · ${roleLabel[a.role]||a.role}</div>
+      </div>
+      ${isLastOwner?'':`<button class="btn sm" onclick="revokeBusinessAccess('${escJs(bizId)}','${escJs(a.userId)}')">Remove</button>`}
+    </div>`;
+  }).join('')||'<p style="font-size:12px;color:var(--tx2)">Nobody has access yet.</p>';
+}
+
+async function grantBusinessAccess(){
+  const id=$('access-biz-id').value;
+  const email=$('access-email-input').value.trim();
+  const role=$('access-role-input').value;
+  const errEl=$('access-error');
+  errEl.style.display='none';
+  if(!email){errEl.textContent='Enter an email address.';errEl.style.display='block';return;}
+  try{
+    await window.CB_FIREBASE.apiRequest('/businesses/'+id+'/access',{method:'POST',body:JSON.stringify({email,role})});
+    $('access-email-input').value='';
+    toast('Access granted ✓');
+    loadAccessList(id);
+  }catch(err){
+    errEl.textContent=err.message||'Could not grant access.';
+    errEl.style.display='block';
+  }
+}
+
+async function revokeBusinessAccess(bizId,userId){
+  if(!confirm('Remove this person\'s access?'))return;
+  try{
+    await window.CB_FIREBASE.apiRequest('/businesses/'+bizId+'/access/'+userId,{method:'DELETE'});
+    toast('Access removed ✓');
+    loadAccessList(bizId);
+  }catch(err){
+    alert(err.message||'Could not remove access.');
+  }
+}
+
+// ═══════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════
 const $=id=>document.getElementById(id);
@@ -2916,11 +3012,19 @@ function renderBizGrid(){
     const avatarHtml=b.logo
       ?`<div class="biz-avatar" style="background:transparent;padding:0"><img src="${b.logo}" alt="${escH(b.name)}" style="width:42px;height:42px;border-radius:10px;object-fit:cover"></div>`
       :`<div class="biz-avatar" style="background:${b.color||'#534AB7'}">${initials(b.name)}</div>`;
+    // Access management is owner-only server-side (requireBusinessAccess(...,'owner'))
+    // — hide the button for anyone else rather than show it and 403 on click.
+    // role is absent for a business this device created but hasn't synced yet;
+    // treat that the same as owner, since only the creator can be in that state.
+    const isOwner=!b.role||b.role==='owner';
     return`<div class="biz-card" onclick="openBusiness('${b.id}')">
       <div class="biz-actions">
         <button class="biz-edit-btn" onclick="event.stopPropagation();openEditBusiness('${b.id}')" title="Edit">
           <svg class="icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
+        ${isOwner?`<button class="biz-edit-btn" onclick="event.stopPropagation();openAccessModal('${b.id}')" title="Manage access">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </button>`:''}
         <button class="biz-del" onclick="event.stopPropagation();deleteBusiness('${b.id}')" title="Delete">
           <svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
         </button>

@@ -30,6 +30,21 @@ export async function setupDb(): Promise<void> {
 }
 
 export async function truncateAll(): Promise<void> {
+  // Belt-and-suspenders: the DATABASE_URL fallback above only fires when the
+  // variable is completely unset, but importing migrate.js pulls in its own
+  // process.loadEnvFile() call, which can populate DATABASE_URL from a real
+  // .env before this file's fallback ever runs — pointing every test at
+  // someone's real database. A destructive TRUNCATE must never fire against
+  // anything whose name doesn't self-identify as disposable, no matter how it
+  // got selected.
+  const { rows } = await getPool().query<{ name: string }>('SELECT current_database() AS name');
+  const dbName = rows[0]!.name;
+  if (!/test|e2e/i.test(dbName)) {
+    throw new Error(
+      `Refusing to TRUNCATE database "${dbName}" — its name doesn't contain "test" or "e2e", ` +
+      `so it doesn't look disposable. Set DATABASE_URL to a real test database before running tests.`,
+    );
+  }
   await getPool().query(`
     TRUNCATE audit_log, journal_lines, journal_entries, bank_txns, opening_balances,
              invoices, expenses, clients, categories, business_access, businesses,
