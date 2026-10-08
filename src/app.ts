@@ -41,7 +41,11 @@ export async function buildApp(opts: BuildOptions = {}): Promise<FastifyInstance
       directives: {
         defaultSrc: ["'self'"],
         // The front end is one file with inline script and style by design.
-        scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
+        // Tesseract.js (receipt OCR) loads its worker and WebAssembly core from
+        // jsDelivr and runs the worker from a blob: URL; 'wasm-unsafe-eval' is
+        // the narrow permission to compile WebAssembly, not general eval().
+        scriptSrc: ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", 'https://cdnjs.cloudflare.com', 'https://cdn.jsdelivr.net'],
+        workerSrc: ["'self'", 'blob:', 'https://cdnjs.cloudflare.com', 'https://cdn.jsdelivr.net'],
         // helmet's default script-src-attr is 'none' and does NOT inherit
         // scriptSrc's 'unsafe-inline', so it must be opened separately or every
         // onclick="..." attribute in the front end (there are many) is silently
@@ -49,7 +53,8 @@ export async function buildApp(opts: BuildOptions = {}): Promise<FastifyInstance
         scriptSrcAttr: ["'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'blob:'],
-        connectSrc: ["'self'", 'https://*.amazonaws.com'],
+        // jsDelivr + projectnaptha.com: Tesseract's core and English language data.
+        connectSrc: ["'self'", 'https://*.amazonaws.com', 'https://cdn.jsdelivr.net', 'https://tessdata.projectnaptha.com'],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],
         baseUri: ["'self'"],

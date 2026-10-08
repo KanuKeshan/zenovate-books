@@ -136,6 +136,63 @@ export function verifyLocalPassword(email: string, password: string): LocalAuthU
   return user && match ? user : null;
 }
 
+const LOCAL_REFRESH_PREFIX = 'localrt.';
+
+/**
+ * The "stay signed in" cookie for local auth. It must be unforgeable: an
+ * unsigned cookie holding just an email would let anyone who knows a user's
+ * address mint a session with no password. Signed with a different message
+ * prefix than ID tokens so one can never be replayed as the other.
+ */
+export function mintLocalRefreshToken(email: string, ttlSeconds: number): string {
+  if (!localAuthEnabled()) throw new Error('local auth is not enabled');
+  const body = Buffer.from(JSON.stringify({ email: email.toLowerCase(), exp: Date.now() + ttlSeconds * 1000 })).toString('base64url');
+  const sig = createHmac('sha256', process.env.LOCAL_AUTH_SECRET!).update('refresh.' + body).digest('base64url');
+  return `${LOCAL_REFRESH_PREFIX}${body}.${sig}`;
+}
+
+/** Returns the email a valid, unexpired local refresh cookie was issued to, else null. */
+export function verifyLocalRefreshToken(token: string): string | null {
+  if (!localAuthEnabled() || !token.startsWith(LOCAL_REFRESH_PREFIX)) return null;
+  const parts = token.slice(LOCAL_REFRESH_PREFIX.length).split('.');
+  if (parts.length !== 2) return null;
+  const [body, sig] = parts as [string, string];
+  const expected = createHmac('sha256', process.env.LOCAL_AUTH_SECRET!).update('refresh.' + body).digest('base64url');
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  try {
+    const { email, exp } = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as { email?: unknown; exp?: unknown };
+    if (typeof email !== 'string' || typeof exp !== 'number' || exp < Date.now()) return null;
+    return email;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Failed-password throttle keyed on the account, not the caller's address.
+ * The per-IP limit alone is not enough on a public host: a client can send its
+ * own X-Forwarded-For and look like a new address every request. Keying on the
+ * email means guessing at one account is capped however the guesses arrive.
+ */
+const loginFailures = new Map<string, number[]>();
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_MAX_FAILURES = 8;
+export function loginThrottled(email: string): boolean {
+  const k = email.toLowerCase();
+  const recent = (loginFailures.get(k) ?? []).filter((t) => Date.now() - t < LOGIN_WINDOW_MS);
+  loginFailures.set(k, recent);
+  return recent.length >= LOGIN_MAX_FAILURES;
+}
+export function recordLoginFailure(email: string): void {
+  const k = email.toLowerCase();
+  loginFailures.set(k, [...(loginFailures.get(k) ?? []), Date.now()]);
+}
+export function clearLoginFailures(email: string): void {
+  loginFailures.delete(email.toLowerCase());
+}
+
 export function mintLocalToken(claims: { sub: string; email: string; name?: string }): string {
   if (!localAuthEnabled()) throw new Error('local auth is not enabled');
   const body = Buffer.from(JSON.stringify({ ...claims, iat: Date.now() })).toString('base64url');

@@ -326,6 +326,7 @@ tr:hover td{background:var(--bg2)}
       </div>
     </div>
     <div class="nav-item active" onclick="nav('dashboard',this)"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</div>
+    <div class="nav-item" onclick="nav('overview',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>Business Overview</div>
     <div class="nav-item" onclick="nav('invoices',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Invoices</div>
     <div class="nav-item" onclick="nav('expenses',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>Expenses</div>
     <div class="nav-item" onclick="nav('ledger',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Ledger</div>
@@ -398,6 +399,43 @@ tr:hover td{background:var(--bg2)}
           </div>
         </div>
         <div class="card"><div class="card-header">Recent transactions</div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Type</th><th>Amount</th></tr></thead><tbody id="recent-txns"></tbody></table></div></div>
+      </div>
+    </div>
+    <!-- BUSINESS OVERVIEW (founder-facing, no transaction entry) -->
+    <div id="page-overview" class="page">
+      <div class="topbar"><h1>Business Overview</h1>
+        <div class="topbar-actions"><span style="font-size:12px;color:var(--tx2)" id="overview-period-label"></span></div>
+      </div>
+      <div class="content">
+        <div class="metrics" id="overview-kpis"></div>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="card">
+            <div class="card-header">Revenue vs expenses — last 6 months</div>
+            <div style="padding:16px 18px" id="overview-trend"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">Cash flow — next 90 days</div>
+            <div style="padding:16px 18px" id="overview-cashflow"></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="card">
+            <div class="card-header">Client concentration — last 6 months</div>
+            <div style="padding:2px 18px" id="overview-clients"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">Top cost drivers — last 6 months</div>
+            <div style="padding:2px 18px" id="overview-costs"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">Accounts receivable</div>
+            <div style="padding:2px 18px" id="overview-ar"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">On the roadmap</div>
+          <div style="padding:14px 18px;font-size:13px;color:var(--tx2)" id="overview-roadmap"></div>
+        </div>
       </div>
     </div>
     <!-- INVOICES -->
@@ -1369,6 +1407,7 @@ tr:hover td{background:var(--bg2)}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js"></script>
 
 <!-- ═══════════════════════════════════════
      CLOUD SYNC (ZenovateBooks API) — isolated module block.
@@ -3058,9 +3097,8 @@ async function openBusiness(id){
   }
   $('sidebar-biz-name').textContent=biz.name;
   $('dash-title').textContent=biz.name;
-  // The "Use QGV logo" shortcut is only relevant for the QGV business itself
-  // — it was showing up in every business's sidebar regardless of which one
-  // was active, which makes no sense for MD Med or any other company.
+  // A one-business logo shortcut used to show up in every business's sidebar
+  // regardless of which one was active, which made no sense for any other company.
   $('biz-screen').style.display='none';
   $('app').classList.add('visible');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -3205,6 +3243,7 @@ function nav(page,el){
   if(page==='payroll'){if(!payrollTab)payrollTab='employees';renderPayrollPage();}
   if(page==='reimbursements'){if(!reimbTab)reimbTab='queue';renderReimbursementsPage();}
   if(page==='fpa'){if(!fpaTab)fpaTab='overview';renderFpaPage();}
+  if(page==='overview')renderOverviewPage();
   if(page==='stmtdata')renderStmtPage();
   if(page==='migrate')renderMigratePage();
   if(page==='budget')renderBudgetPage();
@@ -3383,6 +3422,124 @@ function renderRecent(){
     ...S.expenses.map(e=>({date:e.date,desc:escH(e.desc),type:'expense',amount:Number(e.amount)}))
   ].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
   $('recent-txns').innerHTML=items.map(i=>`<tr><td>${i.date}</td><td>${i.desc}</td><td><span class="badge ${i.type==='income'?'income':'expense-b'}">${i.type}</span></td><td style="font-weight:600;color:${i.type==='income'?'var(--green)':'var(--red)'}">${i.type==='income'?'+':'-'}${bizFmt(i.amount)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">No transactions yet</td></tr>';
+}
+
+// ─── Business Overview: a founder-facing read of the same ledger data the
+// bookkeeping pages already compute, with no "add expense" / "new invoice"
+// buttons in sight. Deliberately reuses calcPLForRange / computeBalanceSheet /
+// calcCashFlowForecast / fpaCogsCats rather than recomputing anything, so this
+// page can never disagree with the P&L, Balance Sheet, or Cash Flow pages. ───
+function overviewSixMonthRange(){
+  const now=new Date();
+  const start=new Date(now.getFullYear(),now.getMonth()-5,1).toISOString().split('T')[0];
+  const end=now.toISOString().split('T')[0];
+  return{start,end};
+}
+function renderOverviewPage(){
+  if(!$('overview-kpis'))return;
+  const{start,end}=overviewSixMonthRange();
+  const pl=calcPLForRange(start,end);
+  const bs=computeBalanceSheet(end);
+  // Gross margin needs to know which expense categories are cost-of-goods.
+  // Prefer whatever the business already configured in FP&A Analysis; if
+  // nothing's configured yet, fall back to the category literally named
+  // "Cost of Goods Sold" so a fresh business still shows a real number
+  // instead of forcing a settings trip before this page means anything.
+  let cogsSet=fpaCogsCats();
+  if(!cogsSet.size)cogsSet=new Set(Object.keys(pl.cats||{}).filter(c=>/cost of goods sold/i.test(c)));
+  let cogs=null,grossMarginPct=null;
+  if(cogsSet.size){
+    cogs=0;
+    Object.keys(pl.cats||{}).forEach(c=>{if(cogsSet.has(c))cogs+=pl.cats[c];});
+    grossMarginPct=pl.netRevenue>0?((pl.netRevenue-cogs)/pl.netRevenue)*100:null;
+  }
+  const fc=calcCashFlowForecast(90);
+  const fmtPct=p=>p==null?'n/a':p.toFixed(0)+'%';
+
+  $('overview-period-label').textContent='Last 6 months: '+start+' to '+end;
+  $('overview-kpis').innerHTML=`
+    <div class="metric"><div class="metric-label">Revenue (6 mo)</div><div class="metric-value green">${bizFmt(pl.netRevenue)}</div></div>
+    <div class="metric"><div class="metric-label">Gross margin</div><div class="metric-value">${fmtPct(grossMarginPct)}</div>${cogsSet.size?'':'<div class="metric-sub">Set cost-of-goods categories in FP&amp;A Analysis for a real number</div>'}</div>
+    <div class="metric"><div class="metric-label">Net profit (6 mo)</div><div class="metric-value ${pl.profit>=0?'green':'red'}">${bizFmt(pl.profit)}</div></div>
+    <div class="metric" style="cursor:pointer" onclick="navTo('cashflow')"><div class="metric-label">Cash on hand</div><div class="metric-value">${bizFmt(bs.cash)}</div><div class="metric-sub" style="color:${fc.projected30<bs.cash?'var(--amber)':'var(--green)'}">→ ${bizFmt(fc.projected30)} in 30 days</div></div>`;
+
+  renderOverviewTrend();
+  renderOverviewCashflow(fc);
+  renderOverviewClients(pl);
+  renderOverviewCosts(pl);
+  renderOverviewAR();
+  $('overview-roadmap').innerHTML=
+    `<div style="margin-bottom:8px"><strong>For subscription businesses:</strong> MRR, ARR, net revenue retention, churn, CAC, and LTV:CAC — needs a recurring-billing concept this ledger doesn't track yet.</div>`+
+    `<div><strong>For product businesses:</strong> SKU/product-line margin and inventory turns — needs line-item detail below the invoice level.</div>`;
+}
+function renderOverviewTrend(){
+  if(!$('overview-trend'))return;
+  const now=new Date();
+  const months=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const s=new Date(d.getFullYear(),d.getMonth(),1).toISOString().split('T')[0];
+    const e=new Date(d.getFullYear(),d.getMonth()+1,0).toISOString().split('T')[0];
+    const data=calcPLForRange(s,e);
+    months.push({lbl:d.toLocaleString('default',{month:'short'}),revenue:data.netRevenue,expense:data.totalExp});
+  }
+  const maxVal=Math.max(...months.map(m=>Math.max(m.revenue,m.expense)),1);
+  $('overview-trend').innerHTML=`
+    <div class="trend-legend" style="margin-bottom:10px"><span><span class="trend-dot" style="background:#3B6D11"></span>Revenue</span><span><span class="trend-dot" style="background:#A32D2D"></span>Expenses</span></div>
+    <div style="display:flex;align-items:flex-end;gap:10px;height:130px;padding:0 4px">
+      ${months.map(m=>`
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end">
+        <div style="display:flex;align-items:flex-end;gap:3px;height:100%">
+          <div title="Revenue ${bizFmt(m.revenue)}" style="width:14px;background:#3B6D11;border-radius:2px 2px 0 0;height:${Math.max(2,Math.round((m.revenue/maxVal)*100))}%"></div>
+          <div title="Expenses ${bizFmt(m.expense)}" style="width:14px;background:#A32D2D;border-radius:2px 2px 0 0;height:${Math.max(2,Math.round((m.expense/maxVal)*100))}%"></div>
+        </div>
+        <div style="font-size:11px;color:var(--tx2)">${m.lbl}</div>
+      </div>`).join('')}
+    </div>`;
+}
+function renderOverviewCashflow(fc){
+  if(!$('overview-cashflow'))return;
+  const stride=Math.max(1,Math.round(fc.points.length/18));
+  const samples=fc.points.filter((p,i)=>i%stride===0||i===fc.points.length-1);
+  const maxVal=Math.max(1,fc.startCash,...samples.map(p=>Math.abs(p.balance)));
+  const runwayLine=fc.runwayDays!=null
+    ?`<div class="metric-sub" style="color:var(--red)">Projected to run out of cash in ${fc.runwayDays} day${fc.runwayDays===1?'':'s'}</div>`
+    :`<div class="metric-sub" style="color:var(--green)">No cash shortfall projected in the next ${fc.horizonDays} days</div>`;
+  $('overview-cashflow').innerHTML=`
+    <div style="display:flex;align-items:flex-end;gap:2px;height:90px;margin-bottom:8px">
+      ${samples.map(p=>`<div title="${p.date}: ${bizFmt(p.balance)}" style="flex:1;background:${p.balance<0?'var(--red)':'var(--accent)'};border-radius:2px 2px 0 0;height:${Math.max(2,Math.round((Math.abs(p.balance)/maxVal)*100))}%;align-self:${p.balance<0?'flex-start':'flex-end'}"></div>`).join('')}
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--tx2);margin-bottom:10px"><span>Today</span><span>+90 days</span></div>
+    ${runwayLine}
+    <div style="text-align:right;padding-top:8px"><button class="btn sm" onclick="navTo('cashflow')">View full forecast →</button></div>`;
+}
+function renderOverviewClients(pl){
+  if(!$('overview-clients'))return;
+  const total=pl.netRevenue||0;
+  const clients=Object.entries(pl.byClient||{}).sort((a,b)=>b[1].revenue-a[1].revenue).slice(0,5);
+  $('overview-clients').innerHTML=clients.length
+    ? clients.map(([name,d])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd)"><span style="font-size:13px">${escH(name)}</span><span style="font-size:13px;font-weight:600">${bizFmt(d.revenue)} <span style="color:var(--tx2);font-weight:400">(${total?Math.round(d.revenue/total*100):0}%)</span></span></div>`).join('')
+    : '<div class="empty" style="padding:12px 0">No revenue recorded in the last 6 months</div>';
+}
+function renderOverviewCosts(pl){
+  if(!$('overview-costs'))return;
+  const total=pl.totalExp||0;
+  const cats=Object.entries(pl.cats||{}).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  $('overview-costs').innerHTML=cats.length
+    ? cats.map(([name,amt])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd)"><span style="font-size:13px">${escH(name)}</span><span style="font-size:13px;font-weight:600">${bizFmt(amt)} <span style="color:var(--tx2);font-weight:400">(${total?Math.round(amt/total*100):0}%)</span></span></div>`).join('')
+    : '<div class="empty" style="padding:12px 0">No expenses recorded in the last 6 months</div>';
+}
+function renderOverviewAR(){
+  if(!$('overview-ar'))return;
+  const todayStr=new Date().toISOString().split('T')[0];
+  const pending=(S.invoices||[]).filter(i=>i.status==='Pending'||i.status==='Overdue');
+  const total=pending.reduce((s,i)=>s+invTotal(i),0);
+  const overdue=pending.filter(i=>i.due<todayStr);
+  const overdueAmt=overdue.reduce((s,i)=>s+invTotal(i),0);
+  $('overview-ar').innerHTML=`
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd)"><span style="font-size:13px;color:var(--tx2)">Total outstanding</span><span style="font-size:13px;font-weight:600">${bizFmt(total)}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd)"><span style="font-size:13px;color:var(--tx2)">Overdue</span><span style="font-size:13px;font-weight:600;color:${overdue.length?'var(--red)':'var(--green)'}">${bizFmt(overdueAmt)} (${overdue.length})</span></div>
+    <div style="text-align:right;padding-top:8px"><button class="btn sm" onclick="navTo('aging')">View AR Aging →</button></div>`;
 }
 
 function clearInvoiceFilter(){
@@ -9200,11 +9357,14 @@ async function parseReceiptFile(file){
     // Image: create thumbnail and extract text with Tesseract if available, else filename heuristics
     const url=URL.createObjectURL(file);
     thumb=await resizeImageToThumb(url);
+    // OCR needs far more pixels than a 300px display thumbnail has; reading
+    // receipt text off the thumbnail returns near-garbage.
+    const ocrImage=window.Tesseract?await resizeImageToThumb(url,1800,0.92):null;
     URL.revokeObjectURL(url);
     // Try Tesseract OCR if loaded
     if(window.Tesseract){
       try{
-        const {data:{text:t}}=await Tesseract.recognize(thumb,'eng',{logger:()=>{}});
+        const {data:{text:t}}=await Tesseract.recognize(ocrImage,'eng',{logger:()=>{}});
         text=t;
       }catch(e){text=file.name;}
     } else {
@@ -9215,17 +9375,16 @@ async function parseReceiptFile(file){
   return extractReceiptData(text, file.name, thumb);
 }
 
-function resizeImageToThumb(url){
+function resizeImageToThumb(url,max=300,quality=0.75){
   return new Promise((res,rej)=>{
     const img=new Image();
     img.onload=()=>{
       const canvas=document.createElement('canvas');
-      const max=300;
       const scale=Math.min(max/img.width,max/img.height,1);
       canvas.width=img.width*scale;
       canvas.height=img.height*scale;
       canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-      res(canvas.toDataURL('image/jpeg',0.75));
+      res(canvas.toDataURL('image/jpeg',quality));
     };
     img.onerror=rej;
     img.src=url;
@@ -9260,9 +9419,21 @@ function extractReceiptData(text, filename, thumb){
     .filter(n=>n>0&&n<1000000);
   // Prefer "total" amounts
   let amount=0;
-  const totalMatch=t.match(/(?:total|amount due|grand total|amount paid|balance due)[^\d$]*\$?\s?([\d,]+\.\d{2})/i);
-  if(totalMatch) amount=parseFloat(totalMatch[1].replace(/,/g,''));
-  else if(amounts.length) amount=Math.max(...amounts);
+  // Most specific label first, and the LAST occurrence of it (the final total
+  // prints after the line items). Plain "total" must not match inside
+  // "subtotal", and "amount paid" is last because on a cash receipt it is the
+  // money handed over, not what the purchase cost.
+  const totalPatterns=[
+    /grand\s+total[^\d$]{0,40}\$?\s?([\d,]+\.\d{2})/gi,
+    /(?:total\s+due|amount\s+due|balance\s+due)[^\d$]{0,40}\$?\s?([\d,]+\.\d{2})/gi,
+    /(?<!sub[\s-]?)\btotal\b(?!\s*(?:items|savings|tax|discount))[^\d$]{0,40}\$?\s?([\d,]+\.\d{2})/gi,
+    /amount\s+paid[^\d$]{0,40}\$?\s?([\d,]+\.\d{2})/gi,
+  ];
+  for(const re of totalPatterns){
+    const all=[...t.matchAll(re)];
+    if(all.length){amount=parseFloat(all[all.length-1][1].replace(/,/g,''));break;}
+  }
+  if(!amount&&amounts.length) amount=Math.max(...amounts);
 
   // ── Vendor extraction ──
   let vendor='Unknown';

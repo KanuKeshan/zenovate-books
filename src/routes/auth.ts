@@ -3,7 +3,10 @@ import { z } from 'zod';
 import { authenticate } from '../app.js';
 import { HttpError, badRequest } from '../lib/errors.js';
 import { audit } from '../lib/audit.js';
-import { devAuthEnabled, isProduction, localAuthEnabled, verifyLocalPassword, mintLocalToken, localAuthUsers } from '../lib/auth.js';
+import {
+  devAuthEnabled, isProduction, localAuthEnabled, verifyLocalPassword, mintLocalToken, localAuthUsers,
+  mintLocalRefreshToken, verifyLocalRefreshToken, loginThrottled, recordLoginFailure, clearLoginFailures,
+} from '../lib/auth.js';
 
 /**
  * Token handling, and the reasoning behind the shape of it.
@@ -150,8 +153,8 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     // LOCAL_AUTH_USERS and restarting the server ends their session within
     // the hour, not only stops them logging in again.
     if (localAuthEnabled() && refresh.startsWith('localrt.')) {
-      const email = Buffer.from(refresh.slice('localrt.'.length), 'base64url').toString('utf8');
-      const user = localAuthUsers().find((u) => u.email === email.toLowerCase());
+      const email = verifyLocalRefreshToken(refresh);
+      const user = email ? localAuthUsers().find((u) => u.email === email.toLowerCase()) : undefined;
       if (!user) {
         clearRefreshCookie(reply);
         throw new HttpError(401, 'not_authenticated', 'Your session has ended. Sign in again.');
@@ -232,10 +235,17 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
         return reply.status(404).send({ error: 'not_found', message: 'No such endpoint.' });
       }
       const body = z.object({ email: z.string().email(), password: z.string().min(1).max(200) }).strict().parse(req.body);
+      if (loginThrottled(body.email)) {
+        throw new HttpError(429, 'rate_limited', 'Too many failed sign-in attempts for this account. Try again in 15 minutes.');
+      }
       const user = verifyLocalPassword(body.email, body.password);
-      if (!user) throw new HttpError(401, 'sign_in_failed', 'That email or password is incorrect.');
+      if (!user) {
+        recordLoginFailure(body.email);
+        throw new HttpError(401, 'sign_in_failed', 'That email or password is incorrect.');
+      }
+      clearLoginFailures(body.email);
       const token = mintLocalToken({ sub: `local-${user.email}`, email: user.email, name: user.name });
-      setRefreshCookie(reply, 'localrt.' + Buffer.from(user.email, 'utf8').toString('base64url'), 30 * 24 * 3600);
+      setRefreshCookie(reply, mintLocalRefreshToken(user.email, 30 * 24 * 3600), 30 * 24 * 3600);
       return { idToken: token, expiresIn: 3600, mode: 'local' };
     },
   );

@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: zenovatebooks-test
+    runtime: node
+    plan: free
+    # devDependencies (typescript) are needed to compile, so install them explicitly.
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: node dist/server.js
+    healthCheckPath: /api/auth/config
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: RUN_MIGRATIONS_ON_BOOT
+        value: "true"
+      - key: PGSSL
+        value: require
+      - key: LOG_LEVEL
+        value: info
+      # Secrets: entered in the Render dashboard, never committed.
+      - key: DATABASE_URL
+        sync: false
+      - key: LOCAL_AUTH_SECRET
+        sync: false
+      - key: LOCAL_AUTH_USERS
+        sync: false

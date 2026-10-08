@@ -3,3 +3,6 @@ dist/
 .env
 *.log
 reports/_workflow_v2.js
+
+# local-only deploy credentials
+*.local.txt
