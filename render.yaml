@@ -1,3 +1,9 @@
+databases:
+  - name: zenovatebooks-db
+    plan: free
+    databaseName: zenovatebooks
+    user: zenovatebooks
+
 services:
   - type: web
     name: zenovatebooks-test
@@ -14,13 +20,15 @@ services:
         value: production
       - key: RUN_MIGRATIONS_ON_BOOT
         value: "true"
-      - key: PGSSL
-        value: require
       - key: LOG_LEVEL
         value: info
-      # Secrets: entered in the Render dashboard, never committed.
+      # Render hands the app the database's private-network address, so traffic
+      # never crosses the public internet and PGSSL is deliberately left unset.
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: zenovatebooks-db
+          property: connectionString
+      # Secrets: entered in the Render dashboard, never committed.
       - key: LOCAL_AUTH_SECRET
         sync: false
       - key: LOCAL_AUTH_USERS
