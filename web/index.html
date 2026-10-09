@@ -349,6 +349,7 @@ tr:hover td{background:var(--bg2)}
     <div class="nav-item" onclick="nav('tax',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Tax Report</div>
     <div class="nav-item" onclick="nav('payroll',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>Payroll</div>
     <div class="nav-item" onclick="nav('reimbursements',this)" id="nav-reimbursements"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg>Reimbursements <span id="reimb-nav-badge" style="display:none;background:var(--amber);color:#fff;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:auto"></span></div>
+    <div class="nav-item" onclick="nav('help',this)"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Help &amp; FAQ</div>
     <div class="nav-item" onclick="nav('checklist',this)" id="nav-checklist"><svg class="icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Close Checklist <span id="checklist-badge" style="display:none;background:var(--amber);color:#fff;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:auto"></span></div>
     <div class="sidebar-bottom">
       <button class="btn success" onclick="exportAll()"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export all CSV</button>
@@ -436,6 +437,16 @@ tr:hover td{background:var(--bg2)}
           <div class="card-header">On the roadmap</div>
           <div style="padding:14px 18px;font-size:13px;color:var(--tx2)" id="overview-roadmap"></div>
         </div>
+      </div>
+    </div>
+    <!-- HELP & FAQ -->
+    <div id="page-help" class="page">
+      <div class="topbar"><h1>Help &amp; FAQ</h1></div>
+      <div class="content">
+        <div class="card" style="margin-bottom:16px"><div style="padding:14px 18px">
+          <input type="text" id="help-search" placeholder="Search questions… (e.g. receipt, invoice, accountant, backup)" oninput="renderHelpPage()" style="width:100%;padding:9px 12px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:13px;outline:none">
+        </div></div>
+        <div class="card"><div id="help-list" style="padding:4px 18px"></div></div>
       </div>
     </div>
     <!-- INVOICES -->
@@ -1072,7 +1083,7 @@ tr:hover td{background:var(--bg2)}
 
 <!-- Invoice -->
 <div class="modal-bg" id="modal-invoice">
-  <div class="modal">
+  <div class="modal" style="width:640px">
     <div class="modal-header"><span id="invoice-modal-title">New Invoice</span> <button class="btn sm" onclick="closeModal('invoice')"><svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body">
       <input type="hidden" id="inv-idx" value="">
@@ -1080,9 +1091,23 @@ tr:hover td{background:var(--bg2)}
       <div class="form-row"><label>Client email (for sending)</label><input type="email" id="inv-client-email" placeholder="client@example.com"></div>
       <div class="form-grid"><div class="form-row"><label>Invoice #</label><input id="inv-num"></div><div class="form-row"><label>Status</label><select id="inv-status"><option>Pending</option><option>Paid</option><option>Overdue</option></select></div></div>
       <div class="form-grid"><div class="form-row"><label>Issue date</label><input type="date" id="inv-date"></div><div class="form-row"><label>Due date</label><input type="date" id="inv-due"></div></div>
-      <div class="form-row"><label>Description</label><textarea id="inv-desc" placeholder="Services rendered…"></textarea></div>
-      <div class="form-grid"><div class="form-row"><label>Revenue category</label><select id="inv-cat"></select></div><div class="form-row"></div></div>
-      <div class="form-grid"><div class="form-row"><label>Subtotal</label><input type="number" id="inv-amount" placeholder="0.00" oninput="calcInvTotal()"></div><div class="form-row"><label>Tax rate (%)</label><input type="number" id="inv-tax" placeholder="0" value="0" oninput="calcInvTotal()"><div class="tax-hint" id="inv-total-preview"></div></div></div>
+      <div class="form-row">
+        <label>Line items</label>
+        <div style="display:flex;gap:6px;font-size:11px;color:var(--tx2);margin-bottom:4px"><span style="flex:1">Description</span><span style="width:60px">Qty</span><span style="width:90px">Rate</span><span style="width:84px;text-align:right">Amount</span><span style="width:26px"></span></div>
+        <div id="inv-lines"></div>
+        <button class="btn sm" type="button" onclick="addInvLine()" style="margin-top:6px">+ Add line item</button>
+      </div>
+      <div class="form-grid"><div class="form-row"><label>Revenue category</label><select id="inv-cat"></select></div><div class="form-row"><label>Tax rate (%)</label><input type="number" id="inv-tax" placeholder="0" value="0" oninput="calcInvTotal()"></div></div>
+      <div class="form-row" style="text-align:right;font-size:13px">Subtotal: <strong id="inv-subtotal-label">$0.00</strong><input type="hidden" id="inv-amount" value=""><div class="tax-hint" id="inv-total-preview"></div></div>
+      <div class="form-row" style="border-top:1px solid var(--bd);padding-top:12px">
+        <label class="checkbox-row"><input type="checkbox" id="inv-pay-include" onchange="$('inv-pay-fields').style.display=this.checked?'':'none'"> Show bank / payment details on this invoice <span style="color:var(--tx2)">(optional)</span></label>
+        <div id="inv-pay-fields" style="display:none;margin-top:8px">
+          <div class="form-grid"><div class="form-row"><label>Bank</label><input id="inv-pay-bank"></div><div class="form-row"><label>Account name</label><input id="inv-pay-acctname"></div></div>
+          <div class="form-grid"><div class="form-row"><label>Account type</label><input id="inv-pay-accttype" placeholder="Checking"></div><div class="form-row"><label>Account number</label><input id="inv-pay-acctnum"></div></div>
+          <div class="form-grid"><div class="form-row"><label>Routing / ABA</label><input id="inv-pay-routing"></div><div class="form-row"><label>Other instructions</label><input id="inv-pay-notes" placeholder="SWIFT, check payable to…"></div></div>
+          <div style="font-size:11px;color:var(--tx2)">Pre-filled from this business's settings. Edits here apply to this invoice only.</div>
+        </div>
+      </div>
     </div>
     <div class="modal-footer" style="justify-content:space-between">
       <button class="btn danger" id="inv-delete-btn" onclick="deleteInvoiceFromModal()" style="display:none">Delete</button>
@@ -3244,6 +3269,7 @@ function nav(page,el){
   if(page==='reimbursements'){if(!reimbTab)reimbTab='queue';renderReimbursementsPage();}
   if(page==='fpa'){if(!fpaTab)fpaTab='overview';renderFpaPage();}
   if(page==='overview')renderOverviewPage();
+  if(page==='help')renderHelpPage();
   if(page==='stmtdata')renderStmtPage();
   if(page==='migrate')renderMigratePage();
   if(page==='budget')renderBudgetPage();
@@ -3472,6 +3498,36 @@ function renderOverviewPage(){
     `<div style="margin-bottom:8px"><strong>For subscription businesses:</strong> MRR, ARR, net revenue retention, churn, CAC, and LTV:CAC — needs a recurring-billing concept this ledger doesn't track yet.</div>`+
     `<div><strong>For product businesses:</strong> SKU/product-line margin and inventory turns — needs line-item detail below the invoice level.</div>`;
 }
+// ─── Help & FAQ ───
+// Plain statements of what the app does today. When behavior changes (for
+// example cash vs accrual accounting), the matching answer here changes too.
+const HELP_FAQ=[
+  {q:'What can I do in ZenovateBooks?',a:'Keep the books for one or more businesses: record invoices and expenses, import bank statements, scan receipts, and see profit & loss, balance sheet, cash flow and an overall Business Overview. Each business is kept separate.'},
+  {q:'How do I add a business?',a:'On the first screen, click "Add another business", give it a name and pick its type. The type sets the starting categories (for example a product business gets Cost of Goods Sold). You can edit the details later with the pencil icon on its card.'},
+  {q:'How do I create an invoice with several items?',a:'Go to Invoices → New invoice. Under "Line items", enter a description, quantity and rate for each item and click "+ Add line item" for more. Each line\'s amount is quantity × rate, and the subtotal is the sum of the lines. Tax is applied on top.'},
+  {q:'Can I put my bank details on an invoice?',a:'Yes. On the invoice form, tick "Show bank / payment details on this invoice". The fields are pre-filled from your business settings and you can change them for that one invoice. Leave it unticked to leave them off.'},
+  {q:'I typed a new customer name on an invoice. Is that customer saved?',a:'Yes. A customer typed on an invoice is added to Clients automatically, so you can pick them next time. If an existing client had no email, the email you entered is filled in.'},
+  {q:'How do I send an invoice to a customer?',a:'On the invoice row, use the email option. Today it opens the invoice as a PDF and then your own email app with the message ready; you attach the PDF and press send. Sending directly from the platform is planned.'},
+  {q:'What do Pending, Paid and Overdue mean?',a:'Pending is sent but unpaid, Paid is money received, Overdue is unpaid past its due date. Today, only Paid invoices count as revenue on the Profit & Loss (cash basis), while unpaid invoices show as Accounts Receivable on the Balance Sheet.'},
+  {q:'How do I add expenses from receipts?',a:'Go to Expenses and drag in photos or PDFs of receipts, or click "Upload receipts". The app reads the vendor, date and total from each one and lists them for you to review. Fix anything that looks wrong, then click "Import selected as expenses".'},
+  {q:'How accurate is the receipt reading?',a:'Clean, printed receipts read well. Crumpled, faint or handwritten ones may be misread. Always check the vendor, date and amount before importing. The first scan on a device is slower because it downloads the reading engine once.'},
+  {q:'How do I import a bank statement?',a:'Go to Bank Import and upload a statement as a PDF or CSV. The transactions are listed, categorized and matched against what you have already recorded, so the same item is not counted twice.'},
+  {q:'How do I record something that is not on a receipt or statement?',a:'Use "Add expense" or "New invoice" for ordinary items. For corrections and adjustments use Journal Entries, where every entry must balance (debits equal credits).'},
+  {q:'Where is my data stored? Is it saved?',a:'Your data is saved to the platform\'s database, and the "Saved ✓" indicator in the sidebar confirms it. The "Browser storage" meter on the first screen only measures a small local copy kept in your browser for speed.'},
+  {q:'How do I share a business with my accountant?',a:'On the first screen, click the people icon on the business card ("Manage access"), enter their email and choose a role: Accountant (view and edit), Read-only, or Owner. They need their own login first; ask whoever administers your account to create it.'},
+  {q:'How do I back up my data?',a:'Open Categories → Backup & Restore to download a backup file. To restore, use "Restore from backup file" on the first screen. It is a good habit to export a backup regularly.'},
+  {q:'What is the Business Overview?',a:'A read-only summary for owners: revenue, gross margin, profit, cash on hand with a 90-day forecast, client concentration, top costs and receivables, with no data entry.'},
+  {q:'I forgot my password.',a:'Passwords are set by whoever administers your account, so ask them to reset it for you.'}
+];
+function renderHelpPage(){
+  if(!$('help-list'))return;
+  const q=(($('help-search')&&$('help-search').value)||'').trim().toLowerCase();
+  const rows=HELP_FAQ.filter(f=>!q||(f.q+' '+f.a).toLowerCase().includes(q));
+  $('help-list').innerHTML=rows.length
+    ? rows.map(f=>`<details style="border-bottom:1px solid var(--bd);padding:12px 0"><summary style="cursor:pointer;font-size:14px;font-weight:600">${escH(f.q)}</summary><div style="font-size:13px;color:var(--tx2);margin-top:8px;line-height:1.6">${escH(f.a)}</div></details>`).join('')
+    : '<div class="empty" style="padding:16px 0">No matching questions. Try a different word.</div>';
+}
+
 function renderOverviewTrend(){
   if(!$('overview-trend'))return;
   const now=new Date();
@@ -4387,6 +4443,52 @@ function populateDropdowns(){
 function fillClientTax(){const sel=$('inv-client-sel').value;const c=S.clients.find(x=>x.name===sel);if(c){$('inv-client').value=c.name;$('inv-tax').value=c.taxRate||0;$('inv-client-email').value=c.email||'';calcInvTotal();}}
 function calcInvTotal(){const amt=parseFloat($('inv-amount').value)||0;const tax=parseFloat($('inv-tax').value)||0;$('inv-total-preview').textContent=tax>0?'Total: '+bizFmt(amt*(1+tax/100)):'';}
 
+// ─── Invoice line items ───
+// An invoice is a list of {desc, qty, rate} rows. The stored `amount` stays the
+// subtotal (sum of rows) so every report that reads invoice.amount is unchanged,
+// and an invoice with no `lines` (older ones, bank-imported ones) still reads as
+// one row of qty 1.
+let invLines=[];
+const lineAmt=l=>Math.round((Number(l.qty)||0)*(Number(l.rate)||0)*100)/100;
+function renderInvLines(){
+  $('inv-lines').innerHTML=invLines.map((l,i)=>`<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
+    <input style="flex:1;min-width:0" placeholder="Item or service" value="${escH(l.desc||'')}" oninput="invLines[${i}].desc=this.value">
+    <input type="number" step="any" style="width:60px" value="${l.qty??1}" oninput="invLines[${i}].qty=this.value;updateInvLineTotals()">
+    <input type="number" step="any" style="width:90px" placeholder="0.00" value="${l.rate??''}" oninput="invLines[${i}].rate=this.value;updateInvLineTotals()">
+    <span id="inv-line-amt-${i}" style="width:84px;text-align:right;font-size:13px">${bizFmt(lineAmt(l))}</span>
+    <button class="btn sm" type="button" style="width:26px;padding:0" title="Remove" onclick="removeInvLine(${i})">×</button>
+  </div>`).join('');
+  updateInvLineTotals();
+}
+function updateInvLineTotals(){
+  invLines.forEach((l,i)=>{const el=$('inv-line-amt-'+i);if(el)el.textContent=bizFmt(lineAmt(l));});
+  const sub=invLines.reduce((s,l)=>s+lineAmt(l),0);
+  $('inv-amount').value=sub?sub.toFixed(2):'';
+  $('inv-subtotal-label').textContent=bizFmt(sub);
+  calcInvTotal();
+}
+function addInvLine(){invLines.push({desc:'',qty:1,rate:''});renderInvLines();}
+function removeInvLine(i){invLines.splice(i,1);if(!invLines.length)invLines.push({desc:'',qty:1,rate:''});renderInvLines();}
+// Business-level bank details are the default for every invoice; the invoice
+// keeps its own copy so changing the business's bank later never rewrites
+// invoices that were already sent.
+function bizPaymentDefaults(){
+  const b=activeBiz()||{};
+  return{bankName:b.bankName||'',accountName:b.accountName||'',accountType:b.accountType||'',accountNumber:b.accountNumber||'',routingNumber:b.routingNumber||'',notes:b.paymentInstructions||''};
+}
+function fillInvPayment(p){
+  $('inv-pay-include').checked=!!p.include;
+  $('inv-pay-fields').style.display=p.include?'':'none';
+  $('inv-pay-bank').value=p.bankName||'';$('inv-pay-acctname').value=p.accountName||'';
+  $('inv-pay-accttype').value=p.accountType||'';$('inv-pay-acctnum').value=p.accountNumber||'';
+  $('inv-pay-routing').value=p.routingNumber||'';$('inv-pay-notes').value=p.notes||'';
+}
+function readInvPayment(){
+  return{include:$('inv-pay-include').checked,bankName:$('inv-pay-bank').value.trim(),accountName:$('inv-pay-acctname').value.trim(),
+    accountType:$('inv-pay-accttype').value.trim(),accountNumber:$('inv-pay-acctnum').value.trim(),
+    routingNumber:$('inv-pay-routing').value.trim(),notes:$('inv-pay-notes').value.trim()};
+}
+
 function openModal(type,idx){
   if(type==='invoice'){
     const inv=(idx!=null&&S.invoices[idx])||null;
@@ -4401,13 +4503,19 @@ function openModal(type,idx){
       $('inv-client').value=inv.client||'';
       $('inv-client-sel').value=(S.clients||[]).some(c=>c.name===inv.client)?inv.client:'';
       $('inv-client-email').value=inv.email||'';
-      $('inv-amount').value=inv.amount!=null?inv.amount:'';
-      $('inv-desc').value=inv.desc||'';
       $('inv-status').value=inv.status||'Pending';
-      calcInvTotal();
+      invLines=(Array.isArray(inv.lines)&&inv.lines.length)
+        ?inv.lines.map(l=>({desc:l.desc||'',qty:l.qty,rate:l.rate}))
+        :[{desc:inv.desc||'',qty:1,rate:inv.amount!=null?inv.amount:''}];
+      const defaults=bizPaymentDefaults();
+      fillInvPayment(inv.payment||{include:Object.values(defaults).some(Boolean),...defaults});
     }else{
-      $('inv-date').value=TODAY;$('inv-due').value=TODAY;$('inv-num').value='INV-'+(S.invoices.length+1).toString().padStart(3,'0');$('inv-tax').value='0';$('inv-total-preview').textContent='';$('inv-client').value='';$('inv-client-sel').value='';$('inv-client-email').value='';$('inv-amount').value='';$('inv-desc').value='';$('inv-status').value='Pending';
+      $('inv-date').value=TODAY;$('inv-due').value=TODAY;$('inv-num').value='INV-'+(S.invoices.length+1).toString().padStart(3,'0');$('inv-tax').value='0';$('inv-total-preview').textContent='';$('inv-client').value='';$('inv-client-sel').value='';$('inv-client-email').value='';$('inv-status').value='Pending';
+      invLines=[{desc:'',qty:1,rate:''}];
+      const defaults=bizPaymentDefaults();
+      fillInvPayment({include:Object.values(defaults).some(Boolean),...defaults});
     }
+    renderInvLines();
     $('inv-delete-btn').style.display=inv?'':'none';
   }
   if(type==='expense'){$('exp-date').value=TODAY;$('exp-amount').value='';$('exp-desc').value='';$('exp-vendor').value='';$('exp-deductible').checked=true;$('exp-cat').innerHTML=expenseOrReturnOptionsHtml();}
@@ -4451,22 +4559,40 @@ function closeModal(type){$('modal-'+type).classList.remove('open');}
 
 function saveInvoice(){
   const client=$('inv-client').value.trim()||$('inv-client-sel').value;
-  const amount=$('inv-amount').value;
-  if(!client||!amount){alert('Please fill in client and amount.');return;}
-  const rec={id:$('inv-num').value,client,email:($('inv-client-email').value||'').trim(),date:$('inv-date').value||TODAY,due:$('inv-due').value||TODAY,desc:$('inv-desc').value,cat:$('inv-cat').value||(S.categories&&S.categories.income[0])||'Revenue',amount:Number(amount),taxRate:Number($('inv-tax').value)||0,status:$('inv-status').value};
+  // Rows left completely blank are ignored; a row with a rate but no description is kept.
+  const lines=invLines
+    .filter(l=>(l.desc||'').trim()||Number(l.rate))
+    .map(l=>({desc:(l.desc||'').trim(),qty:Number(l.qty)||0,rate:Number(l.rate)||0,amount:lineAmt(l)}));
+  const amount=Math.round(lines.reduce((s,l)=>s+l.amount,0)*100)/100;
+  if(!client||!lines.length||!amount){alert('Please fill in the client and at least one line item with a rate.');return;}
+  const email=($('inv-client-email').value||'').trim();
+  const desc=lines.length===1?lines[0].desc:((lines[0].desc||'Items')+' + '+(lines.length-1)+' more');
+  const rec={id:$('inv-num').value,client,email,date:$('inv-date').value||TODAY,due:$('inv-due').value||TODAY,desc,lines,payment:readInvPayment(),cat:$('inv-cat').value||(S.categories&&S.categories.income[0])||'Revenue',amount,taxRate:Number($('inv-tax').value)||0,status:$('inv-status').value};
+  // A customer typed in here belongs in the client list too, so they can be
+  // picked next time and show up under Clients. An existing client with no
+  // email yet picks up the one entered on this invoice.
+  S.clients=S.clients||[];
+  const existingClient=S.clients.find(c=>(c.name||'').trim().toLowerCase()===client.toLowerCase());
+  let clientAdded=false;
+  if(!existingClient){
+    S.clients.push({name:client,email,phone:'',address:'',taxRate:rec.taxRate});
+    clientAdded=true;
+  }else if(!existingClient.email&&email){
+    existingClient.email=email;
+  }
   const idxVal=$('inv-idx').value;
   const editIdx=idxVal!==''?Number(idxVal):-1;
   if(editIdx>=0&&S.invoices[editIdx]){
     // Preserve bank-import provenance fields so an edited bank-derived
     // invoice is still recognized by the bank cleanup tool.
+    // Fields this form doesn't edit (bank-import tags, anything added later)
+    // carry over untouched; whatever the form did edit overrides them.
     const prev=S.invoices[editIdx];
-    if(prev.fromBank)rec.fromBank=prev.fromBank;
-    if(prev.bankFingerprint)rec.bankFingerprint=prev.bankFingerprint;
-    S.invoices[editIdx]=rec;
+    S.invoices[editIdx]={...prev,...rec};
   }else{
     S.invoices.push(rec);
   }
-  saveBizData();closeModal('invoice');render();toast('Invoice saved ✓');
+  saveBizData();closeModal('invoice');render();toast(clientAdded?'Invoice saved ✓ — '+client+' added to Clients':'Invoice saved ✓');
 }
 function deleteInvoiceFromModal(){
   const idxVal=$('inv-idx').value;
@@ -9602,15 +9728,22 @@ function downloadInvoicePDF(idx){
   // number) plus a freeform notes field for anything else (SWIFT code, check
   // payable-to instructions, etc). Every line is optional — only fields the
   // business has actually filled in show up on the printed invoice.
+  // An invoice carries its own payment details (chosen on the invoice form,
+  // pre-filled from the business). Older invoices have none, so they fall back
+  // to the business's details as before.
+  const pay=inv.payment||{include:true,bankName:biz.bankName,accountName:biz.accountName,accountType:biz.accountType,accountNumber:biz.accountNumber,routingNumber:biz.routingNumber,notes:biz.paymentInstructions};
   const paymentRows=[];
-  if(biz.bankName)paymentRows.push(['Bank',biz.bankName]);
-  if(biz.accountName)paymentRows.push(['Account Name',biz.accountName]);
-  if(biz.accountType)paymentRows.push(['Account Type',biz.accountType]);
-  if(biz.accountNumber)paymentRows.push(['Account Number',biz.accountNumber]);
-  if(biz.routingNumber)paymentRows.push(['Routing Number / ABA (for ACH & Wire)',biz.routingNumber]);
+  if(pay.include){
+    if(pay.bankName)paymentRows.push(['Bank',pay.bankName]);
+    if(pay.accountName)paymentRows.push(['Account Name',pay.accountName]);
+    if(pay.accountType)paymentRows.push(['Account Type',pay.accountType]);
+    if(pay.accountNumber)paymentRows.push(['Account Number',pay.accountNumber]);
+    if(pay.routingNumber)paymentRows.push(['Routing Number / ABA (for ACH & Wire)',pay.routingNumber]);
+  }
   const paymentRowsHtml=paymentRows.map(([k,v])=>`<div><strong>${escH(k)}:</strong> ${escH(v)}</div>`).join('');
-  const paymentNotesHtml=biz.paymentInstructions?`<div style="margin-top:${paymentRows.length?'8px':'0'};color:#4b5563">${escH(biz.paymentInstructions).replace(/\n/g,'<br>')}</div>`:'';
-  const hasPaymentContent=paymentRows.length>0||!!biz.paymentInstructions;
+  const payNotes=pay.include?(pay.notes||''):'';
+  const paymentNotesHtml=payNotes?`<div style="margin-top:${paymentRows.length?'8px':'0'};color:#4b5563">${escH(payNotes).replace(/\n/g,'<br>')}</div>`:'';
+  const hasPaymentContent=paymentRows.length>0||!!payNotes;
   const paymentBlockHtml=hasPaymentContent?`
   <div class="payment-box">
     <div class="payment-box-header">PAYMENT INSTRUCTIONS</div>
@@ -9689,12 +9822,13 @@ function downloadInvoicePDF(idx){
     <table>
       <thead><tr><th>Description</th><th style="text-align:center;width:60px">Qty</th><th style="text-align:right;width:110px">Rate</th><th style="text-align:right;width:120px">Amount</th></tr></thead>
       <tbody>
+        ${(Array.isArray(inv.lines)&&inv.lines.length?inv.lines:[{desc:inv.desc||'Services rendered',qty:1,rate:inv.amount,amount:inv.amount}]).map(l=>`
         <tr>
-          <td><div class="item-desc-title">${escH(inv.desc||'Services rendered')}</div></td>
-          <td style="text-align:center">1</td>
-          <td style="text-align:right">${fmtN(inv.amount)}</td>
-          <td style="text-align:right;font-weight:600">${fmtN(inv.amount)}</td>
-        </tr>
+          <td><div class="item-desc-title">${escH(l.desc||'Services rendered')}</div></td>
+          <td style="text-align:center">${Number(l.qty)}</td>
+          <td style="text-align:right">${fmtN(l.rate)}</td>
+          <td style="text-align:right;font-weight:600">${fmtN(l.amount)}</td>
+        </tr>`).join('')}
       </tbody>
     </table>
     <div class="totals-wrap">

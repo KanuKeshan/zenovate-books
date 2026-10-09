@@ -110,6 +110,18 @@ const KNOWN_KEYS = new Set([
   'categories', 'openingBalance', 'extras',
 ]);
 
+// Fields that have their own column. Everything else the front end attaches to
+// an invoice or expense (bank fingerprints, line items, payment details…) is
+// kept whole in the `extra` JSONB column instead of being silently dropped.
+const INVOICE_COLUMN_KEYS = new Set(['id', 'client', 'date', 'due', 'desc', 'cat', 'amount', 'taxRate', 'status', 'migrated']);
+const EXPENSE_COLUMN_KEYS = new Set(['id', 'date', 'vendor', 'desc', 'cat', 'amount', 'deductible', 'hasReceipt']);
+
+function extraFields(row: Record<string, unknown>, columnKeys: Set<string>): string {
+  const extra: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(row)) if (!columnKeys.has(k) && v !== undefined) extra[k] = v;
+  return JSON.stringify(extra);
+}
+
 /** Stable fingerprint for a bank row so re-importing a statement cannot double it. */
 function dedupeKey(date: string, amountCents: number, desc: string): string {
   return [date, amountCents, desc.toLowerCase().replace(/\s+/g, ' ').trim().slice(0, 120)].join('|');
@@ -293,19 +305,20 @@ export default async function snapshotRoutes(app: FastifyInstance): Promise<void
       let n = 0;
       for (const inv of body.invoices) {
         await c.query(
-          `INSERT INTO invoices (business_id,ref,client_name,issue_date,due_date,description,category,amount,tax_rate,status,migrated)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+          `INSERT INTO invoices (business_id,ref,client_name,issue_date,due_date,description,category,amount,tax_rate,status,migrated,extra)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb)`,
           [businessId, inv.id ?? `INV-${++n}`, inv.client ?? '', inv.date, inv.due || null, inv.desc ?? '',
            inv.cat ?? 'Revenue', toDecimal(parseMoney(inv.amount, 'invoice amount')), Number(inv.taxRate ?? 0),
-           normaliseStatus(inv.status), inv.migrated ?? false],
+           normaliseStatus(inv.status), inv.migrated ?? false, extraFields(inv, INVOICE_COLUMN_KEYS)],
         );
       }
       for (const e of body.expenses) {
         await c.query(
-          `INSERT INTO expenses (business_id,spend_date,vendor,description,category,amount,deductible,has_receipt)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          `INSERT INTO expenses (business_id,spend_date,vendor,description,category,amount,deductible,has_receipt,extra)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb)`,
           [businessId, e.date, e.vendor ?? '', e.desc ?? '', e.cat ?? 'Other',
-           toDecimal(parseMoney(e.amount, 'expense amount')), e.deductible ?? true, e.hasReceipt ?? false],
+           toDecimal(parseMoney(e.amount, 'expense amount')), e.deductible ?? true, e.hasReceipt ?? false,
+           extraFields(e, EXPENSE_COLUMN_KEYS)],
         );
       }
       for (const je of body.journalEntries) {
@@ -397,9 +410,9 @@ export async function readSnapshot(businessId: string): Promise<Record<string, u
   const pool = getPool();
   const [biz, invoices, expenses, clients, cats, entries, lines, bank, ob] = await Promise.all([
     pool.query(`SELECT extras, version::text AS version FROM businesses WHERE id=$1`, [businessId]),
-    pool.query(`SELECT ref,client_name,issue_date,due_date,description,category,amount,tax_rate,status,migrated
+    pool.query(`SELECT ref,client_name,issue_date,due_date,description,category,amount,tax_rate,status,migrated,extra
                   FROM invoices WHERE business_id=$1 ORDER BY issue_date, ref`, [businessId]),
-    pool.query(`SELECT spend_date,vendor,description,category,amount,deductible,has_receipt
+    pool.query(`SELECT spend_date,vendor,description,category,amount,deductible,has_receipt,extra
                   FROM expenses WHERE business_id=$1 ORDER BY spend_date`, [businessId]),
     pool.query(`SELECT name,email,phone,address,tax_rate FROM clients WHERE business_id=$1 ORDER BY name`, [businessId]),
     pool.query(`SELECT kind,name FROM categories WHERE business_id=$1 ORDER BY kind,sort,name`, [businessId]),
@@ -428,11 +441,13 @@ export async function readSnapshot(businessId: string): Promise<Record<string, u
     ...extras, // the deferred features, restored exactly as the browser left them
     version: (biz.rows[0] as any)?.version ?? null,
     invoices: (invoices.rows as any[]).map((r) => ({
+      ...(r.extra ?? {}), // first, so a stored extra can never overwrite a real column
       id: r.ref, client: r.client_name, date: iso(r.issue_date), due: iso(r.due_date),
       desc: r.description, cat: r.category, amount: fromDb(r.amount) / 100,
       taxRate: Number(r.tax_rate), status: r.status, ...(r.migrated ? { migrated: true } : {}),
     })),
     expenses: (expenses.rows as any[]).map((r, i) => ({
+      ...(r.extra ?? {}),
       id: `EXP-${i + 1}`, date: iso(r.spend_date), vendor: r.vendor, desc: r.description,
       cat: r.category, amount: fromDb(r.amount) / 100, deductible: r.deductible,
       ...(r.has_receipt ? { hasReceipt: true } : {}),
