@@ -247,6 +247,14 @@ tr:hover td{background:var(--bg2)}
 
 /* nav divider */
 .nav-divider{height:1px;background:var(--bd);margin:8px 14px}
+.nav-group{margin-top:6px}
+.nav-group-title{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 4px;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2);cursor:pointer;user-select:none}
+.nav-group-title:hover{color:var(--tx)}
+.nav-chevron{width:12px;height:12px;flex-shrink:0;transition:transform .15s}
+.nav-group.collapsed .nav-chevron{transform:rotate(-90deg)}
+.nav-group.collapsed .nav-group-items{display:none}
+.nav-group-dot{display:none;width:6px;height:6px;border-radius:50%;background:var(--amber);margin-left:6px;vertical-align:1px}
+.nav-group.collapsed.has-badge .nav-group-dot{display:inline-block}
 
 /* chart of accounts */
 .cat-chip-list{display:flex;flex-wrap:wrap;gap:8px}
@@ -310,7 +318,7 @@ tr:hover td{background:var(--bg2)}
   <input type="file" id="restore-backup-input" accept="application/json,.json" style="display:none" onchange="importBackup(this)">
   <button class="btn" onclick="openBackupPasteModal()" style="margin-top:8px;font-size:12px">Or paste backup text instead</button>
   <div id="biz-storage" style="margin-top:18px;width:100%;max-width:520px"></div>
-  <div style="font-size:12px;color:var(--tx2);margin-top:10px;max-width:420px;text-align:center">Don't see the business you were working on? If you were working in a preview pane, it may have its own storage — open <strong>Categories → Backup &amp; Restore</strong> there to export a backup file, then restore it here.</div>
+  <div style="font-size:12px;color:var(--tx2);margin-top:10px;max-width:420px;text-align:center">Don't see the business you were working on? If you were working in a preview pane, it may have its own storage — open <strong>Chart of Accounts → Backup &amp; Restore</strong> there to export a backup file, then restore it here.</div>
 </div>
 
 <!-- ═══════════════════════════════════════
@@ -326,31 +334,54 @@ tr:hover td{background:var(--bg2)}
       </div>
     </div>
     <div class="nav-item active" onclick="nav('dashboard',this)"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</div>
-    <div class="nav-item" onclick="nav('overview',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>Business Overview</div>
+    <div class="nav-item" onclick="nav('alerts',this)" id="nav-alerts"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Alerts <span id="alert-badge" style="display:none;background:var(--red);color:#fff;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:auto"></span></div>
+    <div class="nav-group" data-group="accounting">
+      <div class="nav-group-title" onclick="toggleNavGroup('accounting')"><span>Accounting<span class="nav-group-dot"></span></span><svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="nav-group-items">
     <div class="nav-item" onclick="nav('invoices',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Invoices</div>
     <div class="nav-item" onclick="nav('expenses',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>Expenses</div>
+    <div class="nav-item bank-nav" onclick="nav('bank',this)"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20z"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="8" y1="14" x2="16" y2="14"/></svg>Bank Import</div>
     <div class="nav-item" onclick="nav('ledger',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Ledger</div>
     <div class="nav-item" onclick="nav('journal',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6"/><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg>Journal Entries</div>
-    <div class="nav-item" onclick="nav('pl',this)"><svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>P&amp;L Report</div>
-    <div class="nav-item" onclick="nav('balancesheet',this)"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>Balance Sheet</div>
     <div class="nav-item" onclick="nav('clients',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clients</div>
     <div class="nav-item" onclick="nav('recurring',this)"><svg class="icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>Recurring</div>
-    <div class="nav-item" onclick="nav('categories',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg>Categories</div>
-    <div class="nav-item" onclick="nav('budget',this)"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>Budget</div>
-    <div class="nav-divider"></div>
-    <div class="nav-item bank-nav" onclick="nav('bank',this)"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20z"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="8" y1="14" x2="16" y2="14"/></svg>Bank Import</div>
+    <div class="nav-item" onclick="nav('categories',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg>Chart of Accounts</div>
+    <div class="nav-item" onclick="nav('checklist',this)" id="nav-checklist"><svg class="icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Close Checklist <span id="checklist-badge" style="display:none;background:var(--amber);color:#fff;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:auto"></span></div>
     <div class="nav-item" onclick="nav('migrate',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7"/><polyline points="8 8 12 4 16 8"/><line x1="12" y1="4" x2="12" y2="16"/></svg>Migrate from QuickBooks</div>
-    <div class="nav-divider"></div>
-    <div class="nav-item" onclick="nav('alerts',this)" id="nav-alerts"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Alerts <span id="alert-badge" style="display:none;background:var(--red);color:#fff;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:auto"></span></div>
-    <div class="nav-item" onclick="nav('aging',this)"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>AR Aging</div>
+      </div>
+    </div>
+    <div class="nav-group" data-group="reporting">
+      <div class="nav-group-title" onclick="toggleNavGroup('reporting')"><span>Reporting<span class="nav-group-dot"></span></span><svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="nav-group-items">
+    <div class="nav-item" onclick="nav('pl',this)"><svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>P&amp;L Report</div>
+    <div class="nav-item" onclick="nav('balancesheet',this)"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>Balance Sheet</div>
     <div class="nav-item" onclick="nav('cashflow',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>Cash Flow Forecast</div>
+    <div class="nav-item" onclick="nav('aging',this)"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>AR Aging</div>
+      </div>
+    </div>
+    <div class="nav-group" data-group="fpa">
+      <div class="nav-group-title" onclick="toggleNavGroup('fpa')"><span>FP&amp;A<span class="nav-group-dot"></span></span><svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="nav-group-items">
+    <div class="nav-item" onclick="nav('overview',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>Business Overview</div>
     <div class="nav-item" onclick="nav('fpa',this)"><svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>FP&amp;A Analysis</div>
+    <div class="nav-item" onclick="nav('budget',this)"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>Budget</div>
     <div class="nav-item" id="nav-stmtdata" onclick="nav('stmtdata',this)" style="display:none"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Statement Data</div>
+      </div>
+    </div>
+    <div class="nav-group" data-group="tax">
+      <div class="nav-group-title" onclick="toggleNavGroup('tax')"><span>Tax<span class="nav-group-dot"></span></span><svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="nav-group-items">
     <div class="nav-item" onclick="nav('tax',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Tax Report</div>
+      </div>
+    </div>
+    <div class="nav-group" data-group="people">
+      <div class="nav-group-title" onclick="toggleNavGroup('people')"><span>People &amp; Payroll<span class="nav-group-dot"></span></span><svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="nav-group-items">
     <div class="nav-item" onclick="nav('payroll',this)"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>Payroll</div>
     <div class="nav-item" onclick="nav('reimbursements',this)" id="nav-reimbursements"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg>Reimbursements <span id="reimb-nav-badge" style="display:none;background:var(--amber);color:#fff;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:auto"></span></div>
+      </div>
+    </div>
     <div class="nav-item" onclick="nav('help',this)"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Help &amp; FAQ</div>
-    <div class="nav-item" onclick="nav('checklist',this)" id="nav-checklist"><svg class="icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Close Checklist <span id="checklist-badge" style="display:none;background:var(--amber);color:#fff;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:auto"></span></div>
     <div class="sidebar-bottom">
       <button class="btn success" onclick="exportAll()"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export all CSV</button>
       <div id="sync-status-row" style="display:none;font-size:11px;text-align:center;padding:4px 0;border-top:1px solid var(--bd);margin-top:4px;transition:opacity .2s">
@@ -676,79 +707,32 @@ tr:hover td{background:var(--bg2)}
     </div>
     <!-- CATEGORIES / CHART OF ACCOUNTS -->
     <div id="page-categories" class="page">
-      <div class="topbar"><h1>Chart of Accounts</h1></div>
+      <div class="topbar"><h1>Chart of Accounts</h1>
+        <div class="topbar-actions">
+          <button class="btn" onclick="autoNumberAccounts()">Auto-number accounts</button>
+          <button class="btn" onclick="exportChartOfAccountsCSV()"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export CSV</button>
+        </div>
+      </div>
       <div class="content">
+        <div class="info-banner"><svg class="icon" style="margin-top:1px;flex-shrink:0" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Every account in this business, with an optional account number. These drive the dropdowns on Invoices, Expenses, Receipts, Bank Import and Journal Entries. They start from the business type you picked. Assets, Liabilities and Equity feed the Balance Sheet; Cash, Accounts Receivable, Accounts Payable and Owner's Equity are core and can't be removed. Revenue returns are refunds that net against revenue on the P&amp;L.</span></div>
         <div class="card" style="margin-bottom:16px">
+          <div class="card-header">Add an account</div>
+          <div style="padding:16px;display:grid;grid-template-columns:170px 120px 1fr auto;gap:10px;align-items:end">
+            <div class="form-row" style="margin:0"><label>Type</label><select id="coa-new-kind"><option value="asset">Asset</option><option value="liability">Liability</option><option value="equity">Equity</option><option value="income">Income</option><option value="expense" selected>Expense</option><option value="revenueReturn">Revenue return</option></select></div>
+            <div class="form-row" style="margin:0"><label>Number (optional)</label><input id="coa-new-code" placeholder="e.g. 6150"></div>
+            <div class="form-row" style="margin:0"><label>Account name</label><input id="coa-new-name" placeholder="e.g. Insurance" onkeydown="if(event.key==='Enter')addAccountFromForm()"></div>
+            <button class="btn primary" onclick="addAccountFromForm()">Add</button>
+          </div>
+        </div>
+        <div id="coa-tables"></div>
+        <div class="card" style="margin-top:16px">
           <div class="card-header">Backup &amp; Restore</div>
           <div style="padding:16px">
-            <p style="font-size:13px;color:var(--tx2);margin:0 0 12px">Everything in ZenovateBooks is stored in this browser tab only — it is tied to the exact page you're viewing right now. If you ever open a freshly downloaded copy of this file, or a different tab/preview, it will look empty because it's a separate storage bucket. Export a backup here regularly, and use "Restore from backup" on the business-picker screen to bring your data into a new copy of the file.</p>
+            <p style="font-size:13px;color:var(--tx2);margin:0 0 12px">Your books are saved to the server automatically. A backup file is still a good safety net: export one regularly, and use "Restore from backup file" on the business-picker screen to bring everything into another copy.</p>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <button class="btn primary" onclick="exportBackup()"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export backup (all businesses)</button>
               <button class="btn" onclick="$('cat-restore-input').click()"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Restore from backup</button>
               <input type="file" id="cat-restore-input" accept="application/json,.json" style="display:none" onchange="importBackup(this)">
-            </div>
-          </div>
-        </div>
-        <div class="info-banner"><svg class="icon" style="margin-top:1px;flex-shrink:0" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>These categories are seeded from the business type you picked when this business was created, and drive the dropdowns on Invoices, Expenses, Receipts, and Bank Import. Add or remove as your business needs.</span></div>
-        <div class="card">
-          <div class="card-header">Income categories</div>
-          <div style="padding:16px">
-            <div id="income-cat-list" class="cat-chip-list"></div>
-            <div style="display:flex;gap:8px;margin-top:12px">
-              <input id="new-income-cat" placeholder="e.g. Grant Income" style="flex:1;padding:8px 10px;border:1px solid var(--bd2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--tx)" onkeydown="if(event.key==='Enter'){addCategory('income',this.value);this.value='';}">
-              <button class="btn primary" onclick="const el=$('new-income-cat');addCategory('income',el.value);el.value='';">Add</button>
-            </div>
-          </div>
-        </div>
-        <div class="card" style="margin-top:16px">
-          <div class="card-header">Expense categories</div>
-          <div style="padding:16px">
-            <div id="expense-cat-list" class="cat-chip-list"></div>
-            <div style="display:flex;gap:8px;margin-top:12px">
-              <input id="new-expense-cat" placeholder="e.g. Insurance" style="flex:1;padding:8px 10px;border:1px solid var(--bd2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--tx)" onkeydown="if(event.key==='Enter'){addCategory('expense',this.value);this.value='';}">
-              <button class="btn primary" onclick="const el=$('new-expense-cat');addCategory('expense',el.value);el.value='';">Add</button>
-            </div>
-          </div>
-        </div>
-        <div class="info-banner" style="margin-top:16px"><svg class="icon" style="margin-top:1px;flex-shrink:0" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Revenue Return categories are for expense-shaped records that are really refunds — they're logged just like any other expense (date, amount, vendor, receipt) but the P&amp;L nets them against Revenue instead of counting them as a cost. They show up as an extra group inside the Expenses category dropdown, so tagging one is a single click.</span></div>
-        <div class="card" style="margin-top:16px">
-          <div class="card-header">Revenue Return categories</div>
-          <div style="padding:16px">
-            <div id="revenuereturn-cat-list" class="cat-chip-list"></div>
-            <div style="display:flex;gap:8px;margin-top:12px">
-              <input id="new-revenuereturn-cat" placeholder="e.g. Customer Refunds" style="flex:1;padding:8px 10px;border:1px solid var(--bd2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--tx)" onkeydown="if(event.key==='Enter'){addCategory('revenueReturn',this.value);this.value='';}">
-              <button class="btn primary" onclick="const el=$('new-revenuereturn-cat');addCategory('revenueReturn',el.value);el.value='';">Add</button>
-            </div>
-          </div>
-        </div>
-        <div class="info-banner" style="margin-top:16px"><svg class="icon" style="margin-top:1px;flex-shrink:0" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Asset, Liability, and Equity accounts feed the Balance Sheet. Cash and Accounts Receivable update automatically from your bank balance and unpaid invoices — everything else only moves when you post a Journal Entry.</span></div>
-        <div class="card" style="margin-top:16px">
-          <div class="card-header">Asset accounts</div>
-          <div style="padding:16px">
-            <div id="asset-cat-list" class="cat-chip-list"></div>
-            <div style="display:flex;gap:8px;margin-top:12px">
-              <input id="new-asset-cat" placeholder="e.g. Equipment" style="flex:1;padding:8px 10px;border:1px solid var(--bd2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--tx)" onkeydown="if(event.key==='Enter'){addCategory('asset',this.value);this.value='';}">
-              <button class="btn primary" onclick="const el=$('new-asset-cat');addCategory('asset',el.value);el.value='';">Add</button>
-            </div>
-          </div>
-        </div>
-        <div class="card" style="margin-top:16px">
-          <div class="card-header">Liability accounts</div>
-          <div style="padding:16px">
-            <div id="liability-cat-list" class="cat-chip-list"></div>
-            <div style="display:flex;gap:8px;margin-top:12px">
-              <input id="new-liability-cat" placeholder="e.g. Loan Payable" style="flex:1;padding:8px 10px;border:1px solid var(--bd2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--tx)" onkeydown="if(event.key==='Enter'){addCategory('liability',this.value);this.value='';}">
-              <button class="btn primary" onclick="const el=$('new-liability-cat');addCategory('liability',el.value);el.value='';">Add</button>
-            </div>
-          </div>
-        </div>
-        <div class="card" style="margin-top:16px">
-          <div class="card-header">Equity accounts</div>
-          <div style="padding:16px">
-            <div id="equity-cat-list" class="cat-chip-list"></div>
-            <div style="display:flex;gap:8px;margin-top:12px">
-              <input id="new-equity-cat" placeholder="e.g. Owner Draws" style="flex:1;padding:8px 10px;border:1px solid var(--bd2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--tx)" onkeydown="if(event.key==='Enter'){addCategory('equity',this.value);this.value='';}">
-              <button class="btn primary" onclick="const el=$('new-equity-cat');addCategory('equity',el.value);el.value='';">Add</button>
             </div>
           </div>
         </div>
@@ -2153,6 +2137,10 @@ function normalizeBizData(d,biz){
         // get an empty map (every category reads as "no budget set" rather
         // than crashing renderBudgetPage on an undefined lookup).
         budgets:(d.budgets&&typeof d.budgets==='object')?d.budgets:{},
+        // Optional account numbers for the Chart of Accounts, keyed "kind|name".
+        // Must be listed here: this function rebuilds the object field by field,
+        // so anything not named is dropped on load.
+        accountCodes:(d.accountCodes&&typeof d.accountCodes==='object')?d.accountCodes:{},
       };
 }
 
@@ -2184,15 +2172,118 @@ async function loadBizData(id){
   return loadLocalBizData(id,biz);
 }
 
-function addCategory(kind,name){
+// ─── Chart of Accounts: numbers ───
+// An account is still identified by (type, name) everywhere else in the app —
+// invoices, expenses and journal lines store the name — so the number is an
+// extra label kept in S.accountCodes {"expense|Rent & Utilities":"6100"}, never
+// a key. Renumbering can't orphan any record.
+const COA_KINDS=[
+  {kind:'asset',label:'Assets',base:1000},
+  {kind:'liability',label:'Liabilities',base:2000},
+  {kind:'equity',label:'Equity',base:3000},
+  {kind:'income',label:'Income',base:4000},
+  {kind:'revenueReturn',label:'Revenue returns',base:4900},
+  {kind:'expense',label:'Expenses',base:6000},
+];
+const COA_COGS_BASE=5000;
+const coaKey=(kind,name)=>kind+'|'+name;
+function accountCode(kind,name){return(S.accountCodes&&S.accountCodes[coaKey(kind,name)])||'';}
+function codesInUse(){return new Set(Object.values(S.accountCodes||{}).map(c=>String(c).toLowerCase()));}
+function nextFreeAccountCode(kind,name){
+  const def=COA_KINDS.find(k=>k.kind===kind);
+  if(!def)return'';
+  let base=def.base;
+  if(kind==='expense'&&/cost of goods|cogs/i.test(name))base=COA_COGS_BASE;
+  const used=codesInUse();
+  for(let n=base;n<base+1000;n+=10)if(!used.has(String(n)))return String(n);
+  return'';
+}
+function validAccountCode(raw){
+  const code=String(raw||'').trim();
+  if(!code)return{ok:true,code:''};
+  if(!/^[A-Za-z0-9.\-]{1,12}$/.test(code))return{ok:false,msg:'Account numbers can use letters, digits, dots and dashes (up to 12 characters)'};
+  return{ok:true,code};
+}
+function accountCodeTaken(code,exceptKey){
+  return Object.entries(S.accountCodes||{}).some(([k,v])=>k!==exceptKey&&String(v).toLowerCase()===code.toLowerCase());
+}
+// How many records reference this account — shown in the table, and checked
+// before removing one, since removing it doesn't change those records.
+function accountUsage(kind,name){
+  let n=0;
+  if(kind==='income')n+=(S.invoices||[]).filter(i=>i.cat===name).length;
+  if(kind==='expense'||kind==='revenueReturn')n+=(S.expenses||[]).filter(e=>e.cat===name).length;
+  (S.journalEntries||[]).forEach(j=>(j.lines||[]).forEach(l=>{if(l.account===name&&l.kind===kind)n++;}));
+  return n;
+}
+function setAccountCode(kind,name,raw){
+  const v=validAccountCode(raw);
+  if(!v.ok){toast(v.msg);renderCategoriesPage();return;}
+  S.accountCodes=S.accountCodes||{};
+  const key=coaKey(kind,name);
+  if(v.code&&accountCodeTaken(v.code,key)){toast('Number '+v.code+' is already used by another account');renderCategoriesPage();return;}
+  if(v.code)S.accountCodes[key]=v.code;else delete S.accountCodes[key];
+  saveBizData();renderCategoriesPage();
+}
+// Fills in a number for every account that lacks one. Never changes a number
+// someone already chose.
+function autoNumberAccounts(){
+  S.accountCodes=S.accountCodes||{};
+  let filled=0;
+  COA_KINDS.forEach(({kind})=>{
+    ((S.categories&&S.categories[kind])||[]).forEach(name=>{
+      if(S.accountCodes[coaKey(kind,name)])return;
+      const code=nextFreeAccountCode(kind,name);
+      if(code){S.accountCodes[coaKey(kind,name)]=code;filled++;}
+    });
+  });
+  if(filled){saveBizData();renderCategoriesPage();}
+  toast(filled?filled+' account'+(filled===1?'':'s')+' numbered ✓':'Every account already has a number');
+}
+function addAccountFromForm(){
+  const kind=$('coa-new-kind').value;
+  const name=$('coa-new-name').value;
+  if(addCategory(kind,name,$('coa-new-code').value)){$('coa-new-name').value='';$('coa-new-code').value='';}
+}
+function exportChartOfAccountsCSV(){
+  const esc=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const rows=[['Number','Account','Type']];
+  COA_KINDS.forEach(({kind,label})=>sortedAccounts(kind).forEach(name=>rows.push([accountCode(kind,name),name,label])));
+  const blob=new Blob([rows.map(r=>r.map(esc).join(',')).join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=(activeBiz().name||'business').replace(/[^\w\-]+/g,'_')+'-chart-of-accounts.csv';
+  a.click();URL.revokeObjectURL(a.href);
+}
+// Numbered accounts first, in numeric order; accounts without a number after, by name.
+function sortedAccounts(kind){
+  const names=((S.categories&&S.categories[kind])||[]).slice();
+  return names.sort((x,y)=>{
+    const cx=accountCode(kind,x),cy=accountCode(kind,y);
+    if(cx&&cy)return cx.localeCompare(cy,undefined,{numeric:true});
+    if(cx)return-1;if(cy)return 1;
+    return x.localeCompare(y);
+  });
+}
+
+// Returns true when the account was added (so the form knows to clear itself).
+function addCategory(kind,name,code){
   name=(name||'').trim();
-  if(!name){toast('Enter a category name first');return;}
+  if(!name){toast('Enter an account name first');return false;}
   S.categories=S.categories||defaultCategoriesForType(activeBiz().type);
   const list=S.categories[kind];
-  if(!list){return;}
-  if(list.some(c=>c.toLowerCase()===name.toLowerCase())){toast('That category already exists');return;}
+  if(!list){return false;}
+  if(list.some(c=>c.toLowerCase()===name.toLowerCase())){toast('That account already exists');return false;}
+  const v=validAccountCode(code);
+  if(!v.ok){toast(v.msg);return false;}
+  if(v.code&&accountCodeTaken(v.code)){toast('Number '+v.code+' is already used by another account');return false;}
   list.push(name);
+  S.accountCodes=S.accountCodes||{};
+  // Once a business is numbering its accounts, a new one gets the next free
+  // number automatically; a business that has never numbered stays unnumbered.
+  const numbered=v.code||(Object.keys(S.accountCodes).length?nextFreeAccountCode(kind,name):'');
+  if(numbered)S.accountCodes[coaKey(kind,name)]=numbered;
   saveBizData();renderCategoriesPage();toast(name+' added ✓');
+  return true;
 }
 // Cash, Accounts Receivable, Accounts Payable, and Owner's Equity are
 // structural — the Balance Sheet computes their values directly (from your
@@ -2208,7 +2299,10 @@ function removeCategory(kind,name){
     toast(name+' is a core Balance Sheet account and can\'t be removed');
     return;
   }
+  const used=accountUsage(kind,name);
+  if(used>0&&!confirm(name+' is used by '+used+' record'+(used===1?'':'s')+'. Removing the account does not change those records, but you will no longer be able to pick it. Remove it anyway?'))return;
   S.categories[kind]=S.categories[kind].filter(c=>c!==name);
+  if(S.accountCodes)delete S.accountCodes[coaKey(kind,name)];
   saveBizData();renderCategoriesPage();toast(name+' removed');
 }
 // Build <option> HTML for a category <select>. Always includes the record's
@@ -2253,17 +2347,36 @@ function bsAccountOptionsHtml(currentKind,currentName){
   }).join('');
 }
 function renderCategoriesPage(){
-  const cats=S.categories||defaultCategoriesForType(activeBiz().type);
-  // JSON.stringify+escH keeps category names with quotes/apostrophes from
+  const el=$('coa-tables');
+  if(!el)return;
+  S.categories=S.categories||defaultCategoriesForType(activeBiz().type);
+  const personal=activeBiz().type==='Personal / Household';
+  const unnumbered=COA_KINDS.reduce((n,{kind})=>n+((S.categories[kind]||[]).filter(nm=>!accountCode(kind,nm)).length),0);
+  const total=COA_KINDS.reduce((n,{kind})=>n+(S.categories[kind]||[]).length,0);
+  const hint=unnumbered===total&&total>0
+    ?`<div class="info-banner" style="margin-bottom:16px"><span>None of these accounts has a number yet. Numbers are optional, but accountants expect them. Click <strong>Auto-number accounts</strong> for a standard layout (1000s assets, 2000s liabilities, 3000s equity, 4000s income, 5000s cost of goods, 6000s expenses), then change any you like.</span></div>`
+    :'';
+  // JSON.stringify+escH keeps account names with quotes/apostrophes from
   // breaking out of the onclick="..." HTML attribute.
-  const chip=(kind,name)=>`<span class="cat-chip">${escH(name)}<span class="cat-chip-x" onclick="removeCategory('${kind}',${escH(JSON.stringify(name))})" title="Remove">✕</span></span>`;
-  const fill=(id,kind,label)=>{const el=$(id);if(el)el.innerHTML=(cats[kind]||[]).map(c=>chip(kind,c)).join('')||`<p class="empty">No ${label} yet</p>`;};
-  fill('income-cat-list','income','income categories');
-  fill('expense-cat-list','expense','expense categories');
-  fill('revenuereturn-cat-list','revenueReturn','revenue return categories');
-  fill('asset-cat-list','asset','asset accounts');
-  fill('liability-cat-list','liability','liability accounts');
-  fill('equity-cat-list','equity','equity accounts');
+  const arg=v=>escH(JSON.stringify(v));
+  const cards=COA_KINDS.map(({kind,label})=>{
+    // A household has no use for the business-only groups.
+    if(personal&&kind==='revenueReturn')return'';
+    const names=sortedAccounts(kind);
+    const rows=names.map(name=>{
+      const protectedAcct=PROTECTED_ACCOUNTS[kind]&&PROTECTED_ACCOUNTS[kind].includes(name);
+      const used=accountUsage(kind,name);
+      return`<tr>
+        <td style="width:130px"><input value="${escH(accountCode(kind,name))}" placeholder="—" style="width:100px;padding:5px 7px;border:1px solid var(--bd2);border-radius:5px;font-size:13px;background:var(--bg);color:var(--tx)" onchange="setAccountCode('${kind}',${arg(name)},this.value)"></td>
+        <td>${escH(name)}${protectedAcct?' <span style="font-size:11px;color:var(--tx2)">· core account</span>':''}</td>
+        <td style="color:var(--tx2);font-size:12px;width:120px">${used?used+' record'+(used===1?'':'s'):'—'}</td>
+        <td style="width:40px;text-align:right">${protectedAcct?'':`<span class="cat-chip-x" style="display:inline-flex" onclick="removeCategory('${kind}',${arg(name)})" title="Remove">✕</span>`}</td>
+      </tr>`;
+    }).join('');
+    return`<div class="card" style="margin-bottom:16px"><div class="card-header">${label} <span style="font-weight:400;color:var(--tx2)">· ${names.length}</span></div>
+      ${names.length?`<div class="table-wrap"><table><thead><tr><th>Number</th><th>Account</th><th>Used by</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:'<p class="empty" style="padding:14px 18px">No accounts of this type yet</p>'}</div>`;
+  }).join('');
+  el.innerHTML=hint+cards;
 }
 
 // ═══════════════════════════════════════
@@ -2322,7 +2435,7 @@ function renderBudgetPage(){
       <div class="metric"><div class="metric-label">Remaining</div><div class="metric-value ${totalBudget-totalActual<0?'red':'green'}">${bizFmt(totalBudget-totalActual)}</div></div>
     </div>
     ${cats.length?`<div class="table-wrap"><table><thead><tr><th>Category</th><th>Monthly budget</th><th>Spent this month</th><th>Progress</th><th>Remaining</th></tr></thead><tbody>${rows}</tbody></table></div>`
-      :`<p class="empty">No expense categories yet — add some in Categories first.</p>`}
+      :`<p class="empty">No expense categories yet — add some in Chart of Accounts first.</p>`}
   `;
 }
 function setBudget(cat,value){
@@ -2597,11 +2710,11 @@ async function restoreBackupFromString(text){
   try{
     payload=JSON.parse(text);
   }catch(err){
-    alert('That doesn\'t look like valid JSON. Make sure you selected/pasted a full ZenovateBooks backup (exported from Categories → Backup & Restore).');
+    alert('That doesn\'t look like valid JSON. Make sure you selected/pasted a full ZenovateBooks backup (exported from Chart of Accounts → Backup & Restore).');
     return false;
   }
   if(!payload||!payload.clarabooksBackup||!payload.meta||!Array.isArray(payload.meta.businesses)||!payload.data){
-    alert('That doesn\'t look like a ZenovateBooks backup. Make sure you selected/pasted a file exported from Categories → Backup & Restore.');
+    alert('That doesn\'t look like a ZenovateBooks backup. Make sure you selected/pasted a file exported from Chart of Accounts → Backup & Restore.');
     return false;
   }
   let added=0,updated=0;
@@ -3254,6 +3367,7 @@ function nav(page,el){
   // el is null when a page is reached from a button rather than its sidebar
   // item — the FP&A "Upload statements" button, for one.
   if(el)el.classList.add('active');
+  revealNavItem(page);
   render();
   if(page==='bank') renderBankPage();
   if(page==='pl'){const r=getPeriodRange(periodOffset);if($('period-label'))$('period-label').textContent=r.label;}
@@ -3320,6 +3434,7 @@ function render(){
   if(badge){badge.textContent=redCount>0?redCount:'';badge.style.display=redCount>0?'':'none';}
   updateChecklistBadge();
   updateReimbBadge();
+  refreshNavGroups();
 }
 
 // Jump to another page as if the user clicked its sidebar nav item — used by
@@ -3515,7 +3630,7 @@ const HELP_FAQ=[
   {q:'How do I record something that is not on a receipt or statement?',a:'Use "Add expense" or "New invoice" for ordinary items. For corrections and adjustments use Journal Entries, where every entry must balance (debits equal credits).'},
   {q:'Where is my data stored? Is it saved?',a:'Your data is saved to the platform\'s database, and the "Saved ✓" indicator in the sidebar confirms it. The "Browser storage" meter on the first screen only measures a small local copy kept in your browser for speed.'},
   {q:'How do I share a business with my accountant?',a:'On the first screen, click the people icon on the business card ("Manage access"), enter their email and choose a role: Accountant (view and edit), Read-only, or Owner. They need their own login first; ask whoever administers your account to create it.'},
-  {q:'How do I back up my data?',a:'Open Categories → Backup & Restore to download a backup file. To restore, use "Restore from backup file" on the first screen. It is a good habit to export a backup regularly.'},
+  {q:'How do I back up my data?',a:'Open Chart of Accounts → Backup & Restore to download a backup file. To restore, use "Restore from backup file" on the first screen. It is a good habit to export a backup regularly.'},
   {q:'What is the Business Overview?',a:'A read-only summary for owners: revenue, gross margin, profit, cash on hand with a 90-day forecast, client concentration, top costs and receivables, with no data entry.'},
   {q:'I forgot my password.',a:'Passwords are set by whoever administers your account, so ask them to reset it for you.'}
 ];
@@ -6160,7 +6275,7 @@ function clearBank(){
       const count=raw?(JSON.parse(raw).bankTxns||[]).length:0;
       if(count!==o.count){
         console.error(`ZenovateBooks isolation check failed: clearing ${bizName} changed ${o.name}'s bank transactions from ${o.count} to ${count}.`);
-        alert(`Something unexpected happened: clearing ${bizName}'s bank history also changed ${o.name}'s data (${o.count} → ${count} transactions). Please export a backup right away (Categories → Backup & Restore) and let me know — this should not be possible and I want to track down exactly how it happened.`);
+        alert(`Something unexpected happened: clearing ${bizName}'s bank history also changed ${o.name}'s data (${o.count} → ${count} transactions). Please export a backup right away (Chart of Accounts → Backup & Restore) and let me know — this should not be possible and I want to track down exactly how it happened.`);
       }
     }catch(e){}
   });
@@ -7607,7 +7722,7 @@ function qbStep4Html(){
   '<div class="card" style="padding:16px 18px">'+
     '<h3 style="margin:0 0 8px">Worth doing next</h3>'+
     '<div style="font-size:13px;color:var(--tx2);line-height:1.7">'+
-      'Export a backup from <em>Categories → Backup &amp; Restore</em> now, while the migrated state is clean.<br>'+
+      'Export a backup from <em>Chart of Accounts → Backup &amp; Restore</em> now, while the migrated state is clean.<br>'+
       'Have whoever keeps these books check the Balance Sheet against the QuickBooks one before recording anything new.<br>'+
       'Keep the QuickBooks file. Pre-cutover transaction detail lives only there, and you are expected to be able to produce it.'+
     '</div>'+
@@ -8644,6 +8759,45 @@ const STMT_HIDDEN_PAGES=['dashboard','invoices','expenses','ledger','journal','p
 // showing an AR Aging report that's permanently empty reads as broken, not
 // as "doesn't apply to you."
 const PERSONAL_HIDDEN_PAGES=['invoices','clients','recurring','aging','payroll','reimbursements','tax','fpa','migrate','checklist'];
+// ─── Sidebar groups ───
+// Menu sections open and close; what the user left open is remembered. A
+// section containing the page being opened is always revealed, and a section
+// whose every item is hidden for this business type disappears entirely
+// instead of leaving a heading over nothing.
+const NAV_GROUPS_KEY='cb_nav_groups';
+const NAV_GROUP_DEFAULTS={accounting:true,reporting:true,fpa:true,tax:false,people:false};
+function navGroupState(){
+  try{return{...NAV_GROUP_DEFAULTS,...JSON.parse(localStorage.getItem(NAV_GROUPS_KEY)||'{}')};}
+  catch(e){return{...NAV_GROUP_DEFAULTS};}
+}
+function applyNavGroupState(){
+  const st=navGroupState();
+  document.querySelectorAll('.nav-group').forEach(g=>g.classList.toggle('collapsed',!st[g.dataset.group]));
+}
+function toggleNavGroup(id){
+  const st=navGroupState();st[id]=!st[id];
+  try{localStorage.setItem(NAV_GROUPS_KEY,JSON.stringify(st));}catch(e){}
+  applyNavGroupState();
+}
+function revealNavItem(page){
+  const item=document.querySelector(`.sidebar .nav-item[onclick*="nav('${page}'"]`);
+  const g=item&&item.closest('.nav-group');
+  if(g&&g.classList.contains('collapsed')){
+    const st=navGroupState();st[g.dataset.group]=true;
+    try{localStorage.setItem(NAV_GROUPS_KEY,JSON.stringify(st));}catch(e){}
+    applyNavGroupState();
+  }
+}
+function refreshNavGroups(){
+  document.querySelectorAll('.nav-group').forEach(g=>{
+    const items=[...g.querySelectorAll('.nav-item')];
+    g.style.display=items.length&&items.every(i=>i.style.display==='none')?'none':'';
+    // A collapsed section would hide a pending-count badge; show a dot instead.
+    const badged=items.some(i=>[...i.querySelectorAll('span[id$="badge"]')].some(b=>b.style.display!=='none'&&b.textContent.trim()));
+    g.classList.toggle('has-badge',badged);
+  });
+}
+
 function applyDataSourceUi(){
   const stmt=fpaIsStatementBiz();
   const personal=activeBiz().type==='Personal / Household';
@@ -8659,7 +8813,9 @@ function applyDataSourceUi(){
   document.querySelectorAll('.sidebar .nav-divider').forEach(el=>{el.style.display=stmt?'none':'';});
   const btn=$('btn-fpa-upload');
   if(btn)btn.style.display=stmt?'':'none';
+  refreshNavGroups();
 }
+applyNavGroupState();
 
 function openStmtImport(){
   const el=document.querySelector('.sidebar .nav-item[onclick*="stmtdata"]');
