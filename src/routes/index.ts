@@ -9,6 +9,7 @@ import journalRoutes from './journal.js';
 import balancesRoutes from './balances.js';
 import bankRoutes from './bank.js';
 import snapshotRoutes from './snapshot.js';
+import emailRoutes from './email.js';
 import webRoutes from './web.js';
 
 /**
@@ -30,6 +31,7 @@ export const ROUTE_MODULES = [
   balancesRoutes,
   bankRoutes,
   snapshotRoutes,
+  emailRoutes,
 ] as const;
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {

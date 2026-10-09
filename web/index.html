@@ -494,6 +494,7 @@ tr:hover td{background:var(--bg2)}
             <option value="amount-desc">Amount (high to low)</option>
             <option value="amount-asc">Amount (low to high)</option>
           </select>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2);white-space:nowrap"><input type="checkbox" id="inv-filter-bank" style="accent-color:var(--accent)" onchange="invoiceFilter.showBank=this.checked;renderInvoices()"> Show bank deposits <span id="inv-bank-count"></span></label>
           <button class="btn sm" onclick="clearInvoiceFilter()">Clear</button>
         </div>
         <div class="card"><div class="table-wrap"><table><thead><tr><th>Invoice #</th><th>Client</th><th>Date</th><th>Due</th><th>Subtotal</th><th>Tax</th><th>Total</th><th>Category</th><th>Status</th><th></th></tr></thead><tbody id="invoice-list"></tbody></table></div></div></div>
@@ -747,7 +748,9 @@ tr:hover td{background:var(--bg2)}
         <button class="btn danger" onclick="clearBank()" id="bank-clear-btn" style="display:none"><svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Clear all history</button>
       </div></div>
       <div class="content">
+        <div id="bank-accounts-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
         <div id="bank-upload-section">
+          <div class="card" style="padding:12px 16px;margin-bottom:12px;display:flex;gap:14px;align-items:center;flex-wrap:wrap"><label style="font-size:12px;color:var(--tx2)">This statement is for</label><select id="bank-upload-account" onchange="onUploadAccountChange()" style="padding:7px 10px;border:1px solid var(--bd2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--tx)"></select><label style="font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:6px"><input type="checkbox" id="bank-flip" style="accent-color:var(--accent)"> Money in and out look reversed — flip them</label></div>
           <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
             <svg class="upload-icon icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             <h3>Upload bank statement</h3>
@@ -757,7 +760,7 @@ tr:hover td{background:var(--bg2)}
           <input type="file" id="file-input" accept=".csv,.pdf" multiple onchange="handleFiles(this.files)">
           <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2);margin:10px 2px"><input type="checkbox" id="archive-pdf-checkbox" style="accent-color:var(--accent)"> Also keep a copy of the uploaded PDF saved in ZenovateBooks (uses more browser storage — off by default)</label>
           <div id="parse-progress" style="display:none"><div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div><p id="parse-status" style="font-size:13px;color:var(--tx2);text-align:center;margin-top:8px"></p></div>
-          <div class="card" style="padding:16px"><div style="font-weight:600;margin-bottom:8px;font-size:13px">Supported formats</div><div style="font-size:12px;color:var(--tx2);line-height:1.8">CSV columns auto-detected: <strong>Date, Description, Amount, Debit, Credit, Balance</strong><br>PDF: text-based statements parsed automatically. Scanned PDFs may not work — export CSV from your bank as a fallback.</div></div>
+          <div style="font-size:12px;color:var(--tx2);margin:0 2px 10px">CSV needs Date and Description plus Amount or Debit/Credit columns. Text-based PDFs work; scanned PDFs may not — export a CSV from your bank instead.</div>
           <div id="bank-derived-cleanup" style="display:none"></div>
         </div>
         <div id="bank-results" style="display:none">
@@ -766,6 +769,7 @@ tr:hover td{background:var(--bg2)}
             <div class="card"><div class="card-header">Cash flow by month</div><div class="chart-legend"><span><span class="legend-dot" style="background:var(--green)"></span>In</span><span><span class="legend-dot" style="background:var(--red)"></span>Out</span></div><div class="chart-container" id="cashflow-chart"></div></div>
             <div class="card"><div class="card-header">Spending by category</div><div style="padding:16px" id="cat-bars"></div></div>
           </div>
+          <details id="bank-diagnostics" style="margin-top:16px"><summary style="cursor:pointer;font-size:14px;font-weight:600;padding:10px 0">Reconciliation &amp; diagnostics <span style="font-weight:400;color:var(--tx2);font-size:12px">— checks your books against the bank; open it if something looks off</span></summary><div style="margin-top:8px">
           <div class="card">
             <div class="card-header">Bank reconciliation<div style="display:flex;align-items:center;gap:10px"><label style="font-size:12px;color:var(--tx2);font-weight:400">Closing balance: $</label><input type="number" id="bank-closing-balance" placeholder="e.g. 12500.00" style="width:130px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--tx)" oninput="renderReconciliation()"></div></div>
             <div id="recon-content" style="padding:16px"></div>
@@ -785,8 +789,9 @@ tr:hover td{background:var(--bg2)}
             <div style="padding:12px 18px 0;font-size:12px;color:var(--tx2)">Every row below shows as "matched" in the table below and isn't a reconciliation gap by itself — but its recorded date and its actual bank-clearing date disagree, which is exactly what can make two different months each look off even though nothing is "unmatched." Most common cause: an invoice/expense entered by hand before the matching bank statement was imported. If you only ever import from bank statements (no manual entries), this table should always be empty.</div>
             <div id="timing-mismatch-content" style="padding:16px"></div>
           </div>
+          </div></details>
           <div class="card" style="margin-top:16px">
-            <div class="card-header">Imported transactions<span style="display:flex;gap:8px"><button class="btn sm green" onclick="importBankCreditsAsIncome()"><svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Import deposits as revenue</button><button class="btn sm green" onclick="importToExpenses()"><svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Import debits as expenses</button></span></div>
+            <div class="card-header">Imported transactions<span style="display:flex;gap:8px"><button class="btn sm green" onclick="importBankCreditsAsIncome()"><svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Record deposits as income</button><button class="btn sm green" onclick="importToExpenses()"><svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Import debits as expenses</button></span></div>
             <div id="bank-bulk-toolbar" style="display:none;padding:10px 18px;background:var(--bg3);border-bottom:1px solid var(--bd);align-items:center;gap:10px;flex-wrap:wrap">
               <span id="bank-bulk-count" style="font-size:12px;color:var(--tx2)"></span>
               <select id="bank-bulk-cat" style="padding:6px 8px;border:1px solid var(--bd2);border-radius:5px;font-size:12px;background:var(--bg);color:var(--tx)"></select>
@@ -803,9 +808,10 @@ tr:hover td{background:var(--bg2)}
                 <option value="amount-desc">Amount (high to low)</option>
                 <option value="amount-asc">Amount (low to high)</option>
               </select>
+              <select id="bank-filter-account" onchange="setBankAccountFilter(this.value)"></select>
               <button class="btn sm" onclick="clearBankTableFilter()">Clear</button>
             </div>
-            <div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="bank-check-all" onchange="toggleAllBankTxns(this)" style="accent-color:var(--accent)"></th><th>Date</th><th>Description</th><th>Out</th><th>In</th><th>Balance</th><th>Category</th><th>Match</th><th></th></tr></thead><tbody id="bank-txn-list"></tbody></table></div>
+            <div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="bank-check-all" onchange="toggleAllBankTxns(this)" style="accent-color:var(--accent)"></th><th>Date</th><th>Description</th><th>Account</th><th>Out</th><th>In</th><th>Balance</th><th>Category</th><th>Match</th><th></th></tr></thead><tbody id="bank-txn-list"></tbody></table></div>
           </div>
           <div class="card" id="statement-archive-card">
             <div class="card-header">Archived statement PDFs<button class="btn sm" onclick="document.getElementById('archive-only-input').click()"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Archive a PDF</button></div>
@@ -972,6 +978,9 @@ tr:hover td{background:var(--bg2)}
       <div class="form-row"><label>Where the books live</label><select id="biz-source-input" onchange="onBizSourceChange('new')"><option value="ledger">In ZenovateBooks — invoices, expenses, bank feed</option><option value="statements">Analysis only — I'll upload their financial statements</option></select>
         <div id="biz-source-note-new" style="font-size:12px;color:var(--tx2);margin-top:6px;line-height:1.5;display:none">Analysis-only businesses skip invoicing, expenses and payroll entirely. You upload the profit &amp; loss, balance sheet and cash flow statement, and the FP&amp;A page builds every metric from those. You can switch this later.</div>
       </div>
+      <div class="form-row"><label>Accounting basis</label><select id="biz-basis-input"><option value="cash">Cash — income counts when it is received</option><option value="accrual">Accrual — income counts when it is invoiced</option></select>
+        <div style="font-size:12px;color:var(--tx2);margin-top:6px;line-height:1.5">Cash is simplest and fits most small shops. Accrual shows money you are owed (an invoice appears in profit and receivables the day you create it). You can change this later.</div>
+      </div>
       <div class="form-row"><label>Currency</label><select id="biz-currency-input"><option value="$">USD ($)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option><option value="CA$">CAD (CA$)</option><option value="A$">AUD (A$)</option><option value="₹">INR (₹)</option><option value="¥">JPY (¥)</option><option value="S$">SGD (S$)</option><option value="AED">AED</option><option value="R">ZAR (R)</option></select></div>
       <div class="form-row"><label>Colour <span style="font-size:11px;color:var(--tx2)">(used when no logo)</span></label>
         <div class="color-swatches" id="color-swatches">
@@ -1012,6 +1021,9 @@ tr:hover td{background:var(--bg2)}
       <div class="form-row"><label>Business type</label><select id="edit-biz-type"><option>Service-based</option><option>Product/Retail</option><option>SaaS/Subscription</option><option>Freelance/Consulting</option><option>E-commerce</option><option>Non-profit</option><option>Personal / Household</option><option>Other</option></select></div>
       <div class="form-row"><label>Where the books live</label><select id="edit-biz-source" onchange="onBizSourceChange('edit')"><option value="ledger">In ZenovateBooks — invoices, expenses, bank feed</option><option value="statements">Analysis only — uploaded financial statements</option></select>
         <div id="biz-source-note-edit" style="font-size:12px;color:var(--tx2);margin-top:6px;line-height:1.5;display:none">Switching to analysis-only hides invoicing, expenses and payroll. Nothing already recorded is deleted — switch back and it is all still there.</div>
+      </div>
+      <div class="form-row"><label>Accounting basis</label><select id="edit-biz-basis"><option value="">Not chosen yet — original mixed method</option><option value="cash">Cash — income counts when it is received</option><option value="accrual">Accrual — income counts when it is invoiced</option></select>
+        <div style="font-size:12px;color:var(--tx2);margin-top:6px;line-height:1.5">Changing this changes how Profit &amp; Loss and the Balance Sheet are worked out. No invoice or expense is changed, so you can switch back at any time.</div>
       </div>
       <div class="form-row"><label>Currency</label><select id="edit-biz-currency"><option value="$">USD ($)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option><option value="CA$">CAD (CA$)</option><option value="A$">AUD (A$)</option><option value="₹">INR (₹)</option><option value="¥">JPY (¥)</option><option value="S$">SGD (S$)</option><option value="AED">AED</option><option value="R">ZAR (R)</option></select></div>
       <div class="form-row"><label>Colour <span style="font-size:11px;color:var(--tx2)">(used when no logo)</span></label>
@@ -1073,7 +1085,8 @@ tr:hover td{background:var(--bg2)}
       <input type="hidden" id="inv-idx" value="">
       <div class="form-grid"><div class="form-row"><label>Client (from list)</label><select id="inv-client-sel" onchange="fillClientTax()"><option value="">— select —</option></select></div><div class="form-row"><label>Client name (manual)</label><input id="inv-client" placeholder="Or type name"></div></div>
       <div class="form-row"><label>Client email (for sending)</label><input type="email" id="inv-client-email" placeholder="client@example.com"></div>
-      <div class="form-grid"><div class="form-row"><label>Invoice #</label><input id="inv-num"></div><div class="form-row"><label>Status</label><select id="inv-status"><option>Pending</option><option>Paid</option><option>Overdue</option></select></div></div>
+      <div class="form-grid"><div class="form-row"><label>Invoice #</label><input id="inv-num"></div><div class="form-row"><label>Status</label><select id="inv-status" onchange="syncInvPaidRow()"><option>Pending</option><option>Paid</option><option>Overdue</option></select></div></div>
+      <div class="form-row" id="inv-paid-row" style="display:none"><label>Paid on</label><input type="date" id="inv-paid-date"></div>
       <div class="form-grid"><div class="form-row"><label>Issue date</label><input type="date" id="inv-date"></div><div class="form-row"><label>Due date</label><input type="date" id="inv-due"></div></div>
       <div class="form-row">
         <label>Line items</label>
@@ -1098,6 +1111,26 @@ tr:hover td{background:var(--bg2)}
       <div style="display:flex;gap:8px;margin-left:auto">
         <button class="btn" onclick="closeModal('invoice')">Cancel</button>
         <button class="btn primary" onclick="saveInvoice()">Save invoice</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Bank / card account -->
+<div class="modal-bg" id="modal-bank-account">
+  <div class="modal" style="width:460px">
+    <div class="modal-header"><span id="bank-acct-title">Add account</span> <button class="btn sm" onclick="closeModal('bank-account')"><svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="bank-acct-id">
+      <div class="form-row"><label>Type</label><select id="bank-acct-type" onchange="syncBankAcctType()"><option value="bank">Bank account (checking, savings)</option><option value="card">Credit card</option></select></div>
+      <div class="form-row"><label>Name</label><input id="bank-acct-name" placeholder="e.g. Chase Checking"></div>
+      <div class="form-row"><label>Last 4 digits (optional)</label><input id="bank-acct-last4" maxlength="4" placeholder="1234"></div>
+      <div class="form-row"><label id="bank-acct-open-label">Balance before your first imported transaction (optional)</label><input type="number" step="0.01" id="bank-acct-open" placeholder="0.00"><div id="bank-acct-open-hint" style="font-size:11px;color:var(--tx2);margin-top:4px"></div></div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn danger" id="bank-acct-delete" onclick="deleteBankAccount()" style="display:none">Delete</button>
+      <div style="display:flex;gap:8px;margin-left:auto">
+        <button class="btn" onclick="closeModal('bank-account')">Cancel</button>
+        <button class="btn primary" onclick="saveBankAccount()">Save</button>
       </div>
     </div>
   </div>
@@ -1574,6 +1607,8 @@ async function boot() {
   window.CB_FIREBASE = {
     configured: true,
     mode: cfg.mode,
+    // True when the server can send email itself (a yes/no, nothing secret).
+    emailEnabled: !!cfg.emailEnabled,
     workspaceId: 'w',
     startLogin,
     onAuthChange(cb) { listeners.push(cb); cb(user); },
@@ -2050,7 +2085,7 @@ function defaultCategoriesForType(type){
 }
 
 function emptyBizData(type){
-  return{invoices:[],expenses:[],clients:[],recurring:[],bankTxns:[],categories:defaultCategoriesForType(type),categoryMemory:{},statementArchive:[],journalEntries:[],openingBalance:null,checklists:{},payroll:emptyPayrollData(),payees:[],reimbursements:[],reimbursementSettings:emptyReimbursementSettings(),fpaSettings:emptyFpaSettings(),statementData:emptyStatementData(),budgets:{}};
+  return{invoices:[],expenses:[],clients:[],recurring:[],bankTxns:[],categories:defaultCategoriesForType(type),categoryMemory:{},statementArchive:[],journalEntries:[],openingBalance:null,checklists:{},payroll:emptyPayrollData(),payees:[],reimbursements:[],reimbursementSettings:emptyReimbursementSettings(),fpaSettings:emptyFpaSettings(),statementData:emptyStatementData(),budgets:{},bankAccounts:[]};
 }
 // Shared by both the localStorage path and the Firestore path so a business
 // loaded from either source gets identical backfilling/defaulting — the
@@ -2141,6 +2176,7 @@ function normalizeBizData(d,biz){
         // Must be listed here: this function rebuilds the object field by field,
         // so anything not named is dropped on load.
         accountCodes:(d.accountCodes&&typeof d.accountCodes==='object')?d.accountCodes:{},
+        bankAccounts:Array.isArray(d.bankAccounts)?d.bankAccounts:[],
       };
 }
 
@@ -2447,6 +2483,22 @@ function setBudget(cat,value){
   renderBudgetPage();
 }
 
+// Saves to the server go out one at a time per business. Each save carries the
+// whole business, so if one is already on its way only the NEWEST waiting
+// payload matters — it replaces anything queued behind it. Without this, a quick
+// run of clicks sends overlapping requests that can land out of order, and an
+// older copy could overwrite a newer one.
+const cloudPushQueue={};
+function enqueueCloudPush(bizId,run){
+  const q=cloudPushQueue[bizId]||(cloudPushQueue[bizId]={running:false,next:null});
+  if(q.running){q.next=run;return;}
+  q.running=true;
+  const go=job=>Promise.resolve(job()).finally(()=>{
+    if(q.next){const n=q.next;q.next=null;go(n);}
+    else q.running=false;
+  });
+  go(run);
+}
 function saveBizData(){
   if(!META.activeBizId)return true;
   try{
@@ -2480,10 +2532,10 @@ function saveBizData(){
           .then(()=>setSyncStatus('saved'))
           .catch(e=>{
             console.warn('saveBizData: cloud push failed (local copy is still safe)',e);
-            setSyncStatus('error',{label:'⚠ Changes not saved to the server',retry:push});
+            setSyncStatus('error',{label:'⚠ Changes not saved to the server',retry:()=>enqueueCloudPush(bizId,push)});
           });
       };
-      push();
+      enqueueCloudPush(bizId,push);
     }
     return true;
   }catch(e){
@@ -2824,7 +2876,7 @@ const pendingLogo={new:null, edit:null};
 // coming back doesn't lose what you had dialed in, but it's never part of
 // your actual bookkeeping data.
 // ═══════════════════════════════════════
-let invoiceFilter={q:'',month:'',cat:'',sort:'date-desc'};
+let invoiceFilter={q:'',month:'',cat:'',sort:'date-desc',showBank:false};
 let expenseFilter={q:'',month:'',cat:'',sort:'date-desc'};
 let bankTableFilter={q:'',month:'',cat:'',sort:'date-desc'};
 let ledgerFilter={q:'',month:'',type:'',sort:'date-asc'};
@@ -2904,6 +2956,7 @@ async function createBusiness(){
     // blob because the business grid and the nav have to know which kind it is
     // before that blob has been loaded.
     dataSource:(($('biz-source-input')&&$('biz-source-input').value)||'ledger'),
+    accountingBasis:(($('biz-basis-input')&&$('biz-basis-input').value)||'cash'),
     currency:$('biz-currency-input').value,
     color:selectedColor,
     logo:pendingLogo.new||null
@@ -2977,6 +3030,9 @@ function openEditBusiness(id){
   $('edit-biz-name').value=biz.name;
   $('edit-biz-type').value=biz.type||'Service-based';
   $('edit-biz-source').value=biz.dataSource==='statements'?'statements':'ledger';
+  $('edit-biz-basis').value=biz.accountingBasis||'';
+  // Once a basis is chosen there is no going back to "not chosen" — only a switch between the two.
+  $('edit-biz-basis').querySelector('option[value=""]').disabled=!!biz.accountingBasis;
   onBizSourceChange('edit');
   $('edit-biz-currency').value=biz.currency||'$';
   $('edit-biz-address').value=biz.address||'';
@@ -3018,6 +3074,7 @@ function saveEditBusiness(){
   biz.name=name;
   biz.type=$('edit-biz-type').value;
   biz.dataSource=$('edit-biz-source').value==='statements'?'statements':'ledger';
+  biz.accountingBasis=$('edit-biz-basis').value||null;
   biz.currency=$('edit-biz-currency').value;
   biz.address=$('edit-biz-address').value.trim();
   biz.email=$('edit-biz-email').value.trim();
@@ -3346,9 +3403,19 @@ let selectedColor=COLORS[0];
 
 // (selectColor, createBusiness, openEditBusiness, saveEditBusiness defined above)
 
-function deleteBusiness(id){
+async function deleteBusiness(id){
   const biz=META.businesses.find(b=>b.id===id);
   if(!biz)return;
+  if(!confirm('Delete "'+biz.name+'"?\n\nIt will disappear for everyone who has access to it. The books are archived rather than erased, so an administrator can still restore them, but you will not be able to open it again yourself.'))return;
+  // A business that lives on the server must be archived there too. Removing it
+  // from this screen alone made it reappear on the next load.
+  if(cloudActive()&&!String(id).startsWith('biz_')){
+    try{await window.CB_FIREBASE.apiRequest('/businesses/'+encodeURIComponent(id),{method:'DELETE'});}
+    catch(e){
+      alert(e.status===403||e.status===404?'Only an owner of this business can delete it.':'Could not delete it: '+(e.message||e));
+      return;
+    }
+  }
   META.businesses=META.businesses.filter(b=>b.id!==id);
   localStorage.removeItem(bizKey(id));
   if(META.activeBizId===id)META.activeBizId=null;
@@ -3395,7 +3462,7 @@ function nav(page,el){
 function render(){
   if(!META.activeBizId)return;
   S.invoices=S.invoices||[];S.expenses=S.expenses||[];
-  S.clients=S.clients||[];S.recurring=S.recurring||[];S.bankTxns=S.bankTxns||[];
+  S.clients=S.clients||[];S.recurring=S.recurring||[];S.bankTxns=S.bankTxns||[];ensureBankAccounts();
   S.categories=S.categories||defaultCategoriesForType(activeBiz().type);
   S.categories.asset=S.categories.asset||DEFAULT_ASSET_CATS.slice();
   S.categories.liability=S.categories.liability||DEFAULT_LIABILITY_CATS.slice();
@@ -3435,6 +3502,7 @@ function render(){
   updateChecklistBadge();
   updateReimbBadge();
   refreshNavGroups();
+  renderBasisNotes();
 }
 
 // Jump to another page as if the user clicked its sidebar nav item — used by
@@ -3622,15 +3690,20 @@ const HELP_FAQ=[
   {q:'How do I create an invoice with several items?',a:'Go to Invoices → New invoice. Under "Line items", enter a description, quantity and rate for each item and click "+ Add line item" for more. Each line\'s amount is quantity × rate, and the subtotal is the sum of the lines. Tax is applied on top.'},
   {q:'Can I put my bank details on an invoice?',a:'Yes. On the invoice form, tick "Show bank / payment details on this invoice". The fields are pre-filled from your business settings and you can change them for that one invoice. Leave it unticked to leave them off.'},
   {q:'I typed a new customer name on an invoice. Is that customer saved?',a:'Yes. A customer typed on an invoice is added to Clients automatically, so you can pick them next time. If an existing client had no email, the email you entered is filled in.'},
-  {q:'How do I send an invoice to a customer?',a:'On the invoice row, use the email option. Today it opens the invoice as a PDF and then your own email app with the message ready; you attach the PDF and press send. Sending directly from the platform is planned.'},
-  {q:'What do Pending, Paid and Overdue mean?',a:'Pending is sent but unpaid, Paid is money received, Overdue is unpaid past its due date. Today, only Paid invoices count as revenue on the Profit & Loss (cash basis), while unpaid invoices show as Accounts Receivable on the Balance Sheet.'},
+  {q:'How do I send an invoice to a customer?',a:'On the invoice row, use the email option. If email sending has been set up for this platform, it sends the invoice straight to your customer, with the line items, totals and payment details in the message, and replies go to your business email. If it has not, it opens the invoice as a PDF and then your own email app with the message ready; you attach the PDF and press send.'},
+  {q:'What do Pending, Paid and Overdue mean?',a:'Pending means the invoice has been sent but not paid, Paid means the money has been received (you can record the date it was paid), and Overdue means it is unpaid past its due date.'},
+  {q:'What is the difference between cash and accrual accounting?',a:'It decides when income is counted. On a cash basis, income counts on the day an invoice is paid, and unpaid invoices are not income or receivables yet. On an accrual basis, income counts on the invoice date even if it has not been paid, and unpaid invoices show as Accounts Receivable. Expenses are counted on the day they are recorded either way. You choose when you create a business and can change it later from the business\'s Edit button on the first screen; no invoice or expense is changed. Businesses that predate this setting keep their original mixed method until you pick one.'},
   {q:'How do I add expenses from receipts?',a:'Go to Expenses and drag in photos or PDFs of receipts, or click "Upload receipts". The app reads the vendor, date and total from each one and lists them for you to review. Fix anything that looks wrong, then click "Import selected as expenses".'},
   {q:'How accurate is the receipt reading?',a:'Clean, printed receipts read well. Crumpled, faint or handwritten ones may be misread. Always check the vendor, date and amount before importing. The first scan on a device is slower because it downloads the reading engine once.'},
-  {q:'How do I import a bank statement?',a:'Go to Bank Import and upload a statement as a PDF or CSV. The transactions are listed, categorized and matched against what you have already recorded, so the same item is not counted twice.'},
+  {q:'How do I import a bank statement?',a:'Go to Bank Import, choose which account the statement is for ("This statement is for"), then upload it as a PDF or CSV. A first statement needs no setup: it goes to a default "Main bank account". Transactions are listed, categorized and matched against what you have already recorded, so the same item is not counted twice.'},
+  {q:'Can I use several bank accounts and credit cards?',a:'Yes. On Bank Import, click "+ Add account" and choose Bank account or Credit card. Each statement is uploaded to one account, and the account cards at the top show each one\'s balance (or what you owe on a card). Cash on the Balance Sheet adds up your bank accounts; credit cards appear as liabilities instead. If a statement\'s money in and out look reversed (some card issuers list purchases as positive), tick "flip them" before uploading.'},
+  {q:'What does "transfer" mean on a bank row?',a:'A transfer is money that is neither income nor an expense: moving money between your own accounts, or paying a credit card bill. Pick "Transfer between my accounts" or "Credit card payment" in the row\'s category list. The spending was already counted when the card was charged, so counting the payment too would count it twice. Payments that appear as credits on a card statement are marked this way automatically.'},
+  {q:'Why do deposits not show up on the Invoices page?',a:'When you record a bank deposit as income, it is not an invoice, so it stays off the Invoices list (tick "Show bank deposits" to see them). It still counts in your income, the ledger and revenue by client. If a deposit matches an unpaid invoice, such as the same amount and the customer\'s name in the bank text, that invoice is marked Paid on the deposit date instead of creating a new income entry.'},
   {q:'How do I record something that is not on a receipt or statement?',a:'Use "Add expense" or "New invoice" for ordinary items. For corrections and adjustments use Journal Entries, where every entry must balance (debits equal credits).'},
   {q:'Where is my data stored? Is it saved?',a:'Your data is saved to the platform\'s database, and the "Saved ✓" indicator in the sidebar confirms it. The "Browser storage" meter on the first screen only measures a small local copy kept in your browser for speed.'},
   {q:'How do I share a business with my accountant?',a:'On the first screen, click the people icon on the business card ("Manage access"), enter their email and choose a role: Accountant (view and edit), Read-only, or Owner. They need their own login first; ask whoever administers your account to create it.'},
   {q:'How do I back up my data?',a:'Open Chart of Accounts → Backup & Restore to download a backup file. To restore, use "Restore from backup file" on the first screen. It is a good habit to export a backup regularly.'},
+  {q:'How do I delete a business?',a:'On the first screen, use the trash icon on the business card. Only an owner can do this. It disappears for everyone who has access to it. The books are archived rather than erased, so an administrator can still restore them.'},
   {q:'What is the Business Overview?',a:'A read-only summary for owners: revenue, gross margin, profit, cash on hand with a 90-day forecast, client concentration, top costs and receivables, with no data entry.'},
   {q:'I forgot my password.',a:'Passwords are set by whoever administers your account, so ask them to reset it for you.'}
 ];
@@ -3713,8 +3786,17 @@ function renderOverviewAR(){
     <div style="text-align:right;padding-top:8px"><button class="btn sm" onclick="navTo('aging')">View AR Aging →</button></div>`;
 }
 
+// Bank deposits recorded as income are stored alongside invoices but are not
+// invoices, so they must not use up invoice numbers.
+function nextInvoiceNumber(){
+  const taken=new Set((S.invoices||[]).map(i=>i.id));
+  let n=(S.invoices||[]).filter(i=>!i.fromBank).length+1;
+  let id;
+  do{id='INV-'+String(n).padStart(3,'0');n++;}while(taken.has(id));
+  return id;
+}
 function clearInvoiceFilter(){
-  invoiceFilter={q:'',month:'',cat:'',sort:'date-desc'};
+  invoiceFilter={q:'',month:'',cat:'',sort:'date-desc',showBank:false};
   renderInvoices();
 }
 function renderInvoices(){
@@ -3723,12 +3805,15 @@ function renderInvoices(){
   if($('inv-filter-month'))$('inv-filter-month').innerHTML=monthOptionsHtml(S.invoices.map(i=>i.date),f.month);
   if($('inv-filter-cat'))$('inv-filter-cat').innerHTML=catFilterOptionsHtml((S.categories&&S.categories.income)||[],f.cat);
   if($('inv-filter-sort'))$('inv-filter-sort').value=f.sort;
+  const bankIncomeCount=S.invoices.filter(i=>i.fromBank).length;
+  if($('inv-filter-bank'))$('inv-filter-bank').checked=!!f.showBank;
+  if($('inv-bank-count'))$('inv-bank-count').textContent=bankIncomeCount?'('+bankIncomeCount+')':'';
   // Filtering/sorting reorders what's on screen but each row's onclick
   // handlers (updateInvoiceCat, deleteInvoice, etc.) index into the real
   // S.invoices array, not this filtered view — so every row below carries
   // its true index (via indexOf) rather than its position in this list.
   let rows=S.invoices.map((inv,idx)=>({inv,idx}))
-    .filter(({inv})=>(!f.month||inv.date.slice(0,7)===f.month)&&(!f.cat||inv.cat===f.cat)&&matchesText(inv.client+' '+inv.desc+' '+inv.id,f.q));
+    .filter(({inv})=>(f.showBank||!inv.fromBank)&&(!f.month||inv.date.slice(0,7)===f.month)&&(!f.cat||inv.cat===f.cat)&&matchesText(inv.client+' '+inv.desc+' '+inv.id,f.q));
   if(f.sort==='date-asc')rows.sort((a,b)=>a.inv.date<b.inv.date?-1:a.inv.date>b.inv.date?1:0);
   else if(f.sort==='date-desc')rows.sort((a,b)=>a.inv.date<b.inv.date?1:a.inv.date>b.inv.date?-1:0);
   else if(f.sort==='amount-asc')rows.sort((a,b)=>(Number(a.inv.amount)||0)-(Number(b.inv.amount)||0));
@@ -3736,7 +3821,7 @@ function renderInvoices(){
   $('invoice-list').innerHTML=rows.length?rows.map(({inv,idx})=>{
     const tax=Number(inv.amount)*Number(inv.taxRate||0)/100;
     return`<tr><td style="font-weight:600">${escH(inv.id)}</td><td>${escH(inv.client)}</td><td>${inv.date}</td><td>${inv.due}</td><td>${bizFmt(inv.amount)}</td><td style="color:${tax>0?'var(--amber)':'var(--tx2)'}">${tax>0?bizFmt(tax)+' ('+inv.taxRate+'%)':'—'}</td><td style="font-weight:600">${bizFmt(Number(inv.amount)+tax)}</td><td><select onchange="updateInvoiceCat(${idx},this.value)" style="padding:4px 6px;border:1px solid var(--bd2);border-radius:5px;font-size:12px;background:var(--bg);color:var(--tx)">${categoryOptionsHtml('income',inv.cat)}</select></td><td><span class="badge ${inv.status.toLowerCase()}">${inv.status}</span></td><td style="display:flex;gap:4px"><button class="btn sm" onclick="openModal('invoice',${idx})" title="View / edit invoice"><svg class="icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn sm" onclick="downloadInvoicePDF(${idx})" title="Download PDF"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button><button class="btn sm" onclick="emailInvoice(${idx})" title="Email invoice"><svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg></button><button class="btn danger sm" onclick="deleteInvoice(${idx})"><svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></td></tr>`;
-  }).join(''):`<tr><td colspan="10" class="empty">${S.invoices.length?'No invoices match this filter':'No invoices yet'}</td></tr>`;
+  }).join(''):`<tr><td colspan="10" class="empty">${S.invoices.length?(!f.showBank&&S.invoices.every(i=>i.fromBank)?'No invoices yet — your bank deposits are recorded as income (tick "Show bank deposits" to see them)':'No invoices match this filter'):'No invoices yet'}</td></tr>`;
 }
 function updateInvoiceCat(idx,newCat){
   if(!S.invoices[idx])return;
@@ -3984,17 +4069,27 @@ function computeBalanceSheet(asOfDate){
   const ob=S.openingBalance;
   const obApplies=!!(ob&&ob.date&&(!asOfDate||ob.date<=asOfDate));
   let cash;
-  const withBal=bankTxns.filter(t=>t.balance!=null);
+  // Credit cards are not cash; each bank account contributes its own balance.
+  const cashTxns=bankTxns.filter(t=>!isCardAccount(t.accountId));
+  const withBal=cashTxns.filter(t=>t.balance!=null);
   if(withBal.length){
-    cash=withBal[withBal.length-1].balance; // bankTxns is kept date-sorted by mergeBankTxns
+    cash=cashFromBankAccounts(cashTxns);
   }else{
-    const paidIncome=(S.invoices||[]).filter(i=>i.status==='Paid'&&(!asOfDate||i.date<=asOfDate)).reduce((s,i)=>s+invTotal(i),0);
+    const paidIncome=(S.invoices||[]).filter(i=>i.status==='Paid'&&(!asOfDate||invoiceCashDate(i)<=asOfDate)).reduce((s,i)=>s+invTotal(i),0);
     const paidExpense=(S.expenses||[]).filter(e=>!asOfDate||e.date<=asOfDate).reduce((s,e)=>s+Number(e.amount),0);
     cash=paidIncome-paidExpense;
     if(obApplies) cash+=Number(ob.cash)||0;
   }
-  const ar=(S.invoices||[]).filter(i=>i.status!=='Paid'&&(!asOfDate||i.date<=asOfDate)).reduce((s,i)=>s+invTotal(i),0);
-  const allIncome=(S.invoices||[]).filter(i=>!asOfDate||i.date<=asOfDate).reduce((s,i)=>s+invTotal(i),0);
+  // Cash basis has no receivable: an unpaid invoice is not an asset yet, and not
+  // income either. Accrual (and the original mixed method) keep unpaid invoices
+  // on the sheet; accrual additionally leaves out drafts.
+  const basis=bizBasis();
+  const ar=basis==='cash'?0:(S.invoices||[]).filter(i=>i.status!=='Paid'&&(basis!=='accrual'||i.status!=='Draft')&&(!asOfDate||i.date<=asOfDate)).reduce((s,i)=>s+invTotal(i),0);
+  const allIncome=(S.invoices||[]).filter(i=>{
+    if(basis==='cash')return i.status==='Paid'&&(!asOfDate||invoiceCashDate(i)<=asOfDate);
+    if(basis==='accrual'&&i.status==='Draft')return false;
+    return!asOfDate||i.date<=asOfDate;
+  }).reduce((s,i)=>s+invTotal(i),0);
   const allExpense=(S.expenses||[]).filter(e=>!asOfDate||e.date<=asOfDate).reduce((s,e)=>s+Number(e.amount),0);
 
   const jeBalance={};
@@ -4021,7 +4116,8 @@ function computeBalanceSheet(asOfDate){
   // real cash movement since the cutover — same assumption double-entry
   // bookkeeping always makes, and
   // the same one the Reconciliation tab already checks for you.
-  const openingEquityPlug=obApplies?((Number(ob.cash)||0)+obAr-obAp):0;
+  const cardLiabs=cardLiabilitiesAsOf(asOfDate);
+  const openingEquityPlug=(obApplies?((Number(ob.cash)||0)+obAr-obAp):0)-cardOpeningOwed();
 
   // A journal entry's Cash line (e.g. from postBankTxnToBalanceSheet) only
   // actually moves the Balance Sheet's Cash figure when there's no real
@@ -4039,10 +4135,10 @@ function computeBalanceSheet(asOfDate){
   const otherEquity=(S.categories.equity||[]).filter(a=>a!=="Owner's Equity").map(name=>({name,amount:jeFor('equity',name)}));
 
   const totalAssets=cashTotal+arTotal+otherAssets.reduce((s,a)=>s+a.amount,0);
-  const totalLiabilities=ap+otherLiabilities.reduce((s,a)=>s+a.amount,0);
+  const totalLiabilities=ap+otherLiabilities.reduce((s,a)=>s+a.amount,0)+cardLiabs.reduce((s,a)=>s+a.amount,0);
   const totalEquity=ownersEquity+retainedEarnings+openingEquityPlug+otherEquity.reduce((s,a)=>s+a.amount,0);
 
-  return{cash:cashTotal,ar:arTotal,ap,ownersEquity,retainedEarnings,openingEquityPlug,otherAssets,otherLiabilities,otherEquity,totalAssets,totalLiabilities,totalEquity};
+  return{cash:cashTotal,ar:arTotal,ap,ownersEquity,retainedEarnings,openingEquityPlug,otherAssets,otherLiabilities,cardLiabilities:cardLiabs,otherEquity,totalAssets,totalLiabilities,totalEquity};
 }
 
 // ─── Opening Balances ───
@@ -4110,6 +4206,7 @@ function renderBalanceSheetPage(){
         <div style="padding:16px"><table style="width:100%;border-collapse:collapse">
           ${row('Accounts Payable',bs.ap)}
           ${bs.otherLiabilities.map(a=>row(escH(a.name),a.amount)).join('')}
+          ${(bs.cardLiabilities||[]).map(a=>row(escH(a.name),a.amount)).join('')}
           ${row('Total Liabilities',bs.totalLiabilities,true)}
           ${hr}
           ${row("Owner's Equity",bs.ownersEquity)}
@@ -4216,9 +4313,35 @@ function inRange(date,start,end){return date>=start&&date<=end;}
 // an 'expense'-kind line does the same to expenses (debit increases) —
 // landing in the Revenue Returns bucket instead if it's posted to a return
 // account. Asset/liability/equity JE lines only affect the Balance Sheet.
+// ─── Accounting basis ───
+// null (every business created before the setting existed) keeps the original
+// behavior exactly: paid invoices count as income on their invoice date.
+//   cash    — paid invoices, on the day they were paid
+//   accrual — every invoice that is not a draft, on its invoice date
+function bizBasis(){const b=activeBiz();return(b&&b.accountingBasis)||null;}
+function invoiceCountsAsRevenue(i){return bizBasis()==='accrual'?i.status!=='Draft':i.status==='Paid';}
+function invoiceRevenueDate(i){return bizBasis()==='cash'?(i.paidDate||i.date):i.date;}
+// When money actually arrived, for the cash fallback on the Balance Sheet.
+function invoiceCashDate(i){return bizBasis()?(i.paidDate||i.date):i.date;}
+function basisNoteText(){
+  const b=bizBasis();
+  if(b==='cash')return'<strong>Cash basis.</strong> Income counts on the day an invoice is paid; expenses on the day they are recorded. Unpaid invoices are not income yet.';
+  if(b==='accrual')return'<strong>Accrual basis.</strong> Income counts on the invoice date, paid or not. Unpaid invoices appear as Accounts Receivable. Expenses are counted on the day they are recorded.';
+  return'<strong>Accounting basis not chosen.</strong> Reports use the original mixed method: paid invoices are income, while unpaid invoices still appear on the Balance Sheet. Choose Cash or Accrual from this business\'s Edit button on the first screen.';
+}
+function renderBasisNotes(){
+  ['pl','balancesheet','overview'].forEach(p=>{
+    const content=document.querySelector('#page-'+p+' .content');
+    if(!content)return;
+    let el=$('basis-note-'+p);
+    if(!el){el=document.createElement('div');el.id='basis-note-'+p;el.className='info-banner';content.insertBefore(el,content.firstChild);}
+    el.innerHTML='<span>'+basisNoteText()+'</span>';
+  });
+}
+
 function calcPLForRange(startDate,endDate){
   const returnCatSet=new Set((S.categories&&S.categories.revenueReturn)||[]);
-  const inv=(S.invoices||[]).filter(i=>i.status==='Paid'&&inRange(i.date,startDate,endDate));
+  const inv=(S.invoices||[]).filter(i=>invoiceCountsAsRevenue(i)&&inRange(invoiceRevenueDate(i),startDate,endDate));
   const allExp=(S.expenses||[]).filter(e=>inRange(e.date,startDate,endDate));
   const exp=allExp.filter(e=>!returnCatSet.has(e.cat));
   const returns=allExp.filter(e=>returnCatSet.has(e.cat));
@@ -4582,6 +4705,11 @@ function updateInvLineTotals(){
   $('inv-subtotal-label').textContent=bizFmt(sub);
   calcInvTotal();
 }
+function syncInvPaidRow(){
+  const paid=$('inv-status').value==='Paid';
+  $('inv-paid-row').style.display=paid?'':'none';
+  if(paid&&!$('inv-paid-date').value)$('inv-paid-date').value=TODAY;
+}
 function addInvLine(){invLines.push({desc:'',qty:1,rate:''});renderInvLines();}
 function removeInvLine(i){invLines.splice(i,1);if(!invLines.length)invLines.push({desc:'',qty:1,rate:''});renderInvLines();}
 // Business-level bank details are the default for every invoice; the invoice
@@ -4619,18 +4747,20 @@ function openModal(type,idx){
       $('inv-client-sel').value=(S.clients||[]).some(c=>c.name===inv.client)?inv.client:'';
       $('inv-client-email').value=inv.email||'';
       $('inv-status').value=inv.status||'Pending';
+      $('inv-paid-date').value=inv.paidDate||(inv.status==='Paid'?inv.date:'');
       invLines=(Array.isArray(inv.lines)&&inv.lines.length)
         ?inv.lines.map(l=>({desc:l.desc||'',qty:l.qty,rate:l.rate}))
         :[{desc:inv.desc||'',qty:1,rate:inv.amount!=null?inv.amount:''}];
       const defaults=bizPaymentDefaults();
       fillInvPayment(inv.payment||{include:Object.values(defaults).some(Boolean),...defaults});
     }else{
-      $('inv-date').value=TODAY;$('inv-due').value=TODAY;$('inv-num').value='INV-'+(S.invoices.length+1).toString().padStart(3,'0');$('inv-tax').value='0';$('inv-total-preview').textContent='';$('inv-client').value='';$('inv-client-sel').value='';$('inv-client-email').value='';$('inv-status').value='Pending';
+      $('inv-date').value=TODAY;$('inv-due').value=TODAY;$('inv-num').value=nextInvoiceNumber();$('inv-tax').value='0';$('inv-total-preview').textContent='';$('inv-client').value='';$('inv-client-sel').value='';$('inv-client-email').value='';$('inv-status').value='Pending';$('inv-paid-date').value='';
       invLines=[{desc:'',qty:1,rate:''}];
       const defaults=bizPaymentDefaults();
       fillInvPayment({include:Object.values(defaults).some(Boolean),...defaults});
     }
     renderInvLines();
+    syncInvPaidRow();
     $('inv-delete-btn').style.display=inv?'':'none';
   }
   if(type==='expense'){$('exp-date').value=TODAY;$('exp-amount').value='';$('exp-desc').value='';$('exp-vendor').value='';$('exp-deductible').checked=true;$('exp-cat').innerHTML=expenseOrReturnOptionsHtml();}
@@ -4654,6 +4784,7 @@ function openModal(type,idx){
     $('biz-name-input').value='';
     $('biz-type-input').value='Service-based';
     $('biz-source-input').value='ledger';
+    $('biz-basis-input').value='cash';
     onBizSourceChange('new');
     $('biz-currency-input').value='$';
     selectedColor='#534AB7';
@@ -4682,7 +4813,7 @@ function saveInvoice(){
   if(!client||!lines.length||!amount){alert('Please fill in the client and at least one line item with a rate.');return;}
   const email=($('inv-client-email').value||'').trim();
   const desc=lines.length===1?lines[0].desc:((lines[0].desc||'Items')+' + '+(lines.length-1)+' more');
-  const rec={id:$('inv-num').value,client,email,date:$('inv-date').value||TODAY,due:$('inv-due').value||TODAY,desc,lines,payment:readInvPayment(),cat:$('inv-cat').value||(S.categories&&S.categories.income[0])||'Revenue',amount,taxRate:Number($('inv-tax').value)||0,status:$('inv-status').value};
+  const rec={id:$('inv-num').value,client,email,date:$('inv-date').value||TODAY,due:$('inv-due').value||TODAY,desc,lines,payment:readInvPayment(),paidDate:$('inv-status').value==='Paid'?($('inv-paid-date').value||TODAY):undefined,cat:$('inv-cat').value||(S.categories&&S.categories.income[0])||'Revenue',amount,taxRate:Number($('inv-tax').value)||0,status:$('inv-status').value};
   // A customer typed in here belongs in the client list too, so they can be
   // picked next time and show up under Clients. An existing client with no
   // email yet picks up the one entered on this invoice.
@@ -4704,6 +4835,7 @@ function saveInvoice(){
     // carry over untouched; whatever the form did edit overrides them.
     const prev=S.invoices[editIdx];
     S.invoices[editIdx]={...prev,...rec};
+    if(rec.status!=='Paid')delete S.invoices[editIdx].paidDate;
   }else{
     S.invoices.push(rec);
   }
@@ -4758,7 +4890,7 @@ function deleteExpense(idx){S.expenses.splice(idx,1);saveBizData();render();toas
 function deleteClient(idx){S.clients.splice(idx,1);saveBizData();render();toast('Client deleted');}
 function deleteRecurring(idx){S.recurring.splice(idx,1);saveBizData();render();toast('Template deleted');}
 function generateRecurring(idx){
-  const r=S.recurring[idx];const newId='INV-'+(S.invoices.length+1).toString().padStart(3,'0');
+  const r=S.recurring[idx];const newId=nextInvoiceNumber();
   S.invoices.push({id:newId,client:r.client,date:TODAY,due:r.nextDue,desc:r.desc+' ('+r.freq+')',amount:r.amount,taxRate:r.taxRate,status:'Pending'});
   const d=new Date(r.nextDue);if(r.freq==='Weekly')d.setDate(d.getDate()+7);else if(r.freq==='Monthly')d.setMonth(d.getMonth()+1);else if(r.freq==='Quarterly')d.setMonth(d.getMonth()+3);else d.setFullYear(d.getFullYear()+1);
   S.recurring[idx].nextDue=d.toISOString().split('T')[0];
@@ -4817,7 +4949,7 @@ function recomputeAllMatches(){
   const txns=S.bankTxns||[];
   lastFuzzyMatchPairs=[];
   const fpBookCount={};
-  S.invoices.forEach(inv=>{if(inv.bankFingerprint)fpBookCount[inv.bankFingerprint]=(fpBookCount[inv.bankFingerprint]||0)+1;});
+  S.invoices.forEach(inv=>{const bfp=inv.bankFingerprint||inv.paidFromBankFp;if(bfp)fpBookCount[bfp]=(fpBookCount[bfp]||0)+1;});
   S.expenses.forEach(exp=>{if(exp.bankFingerprint)fpBookCount[exp.bankFingerprint]=(fpBookCount[exp.bankFingerprint]||0)+1;});
   const fpUsed={};
   const usedInvoiceIdx=new Set(),usedExpenseIdx=new Set();
@@ -4827,7 +4959,7 @@ function recomputeAllMatches(){
     // journal entry — it has no invoice/expense counterpart to fingerprint-
     // match against, so leave its 'matched' status alone rather than
     // flipping it to 'unmatched' here.
-    if(t.postedToBS){t.matched='matched';return;}
+    if(t.postedToBS||t.transfer){t.matched='matched';return;}
     const fp=txnFingerprint(t);
     const bookCount=fpBookCount[fp]||0;
     const used=fpUsed[fp]||0;
@@ -4843,9 +4975,9 @@ function recomputeAllMatches(){
     const d=(t.desc||'').toLowerCase();
     let found=false;
     for(let i=0;i<S.invoices.length;i++){
-      if(usedInvoiceIdx.has(i))continue;
+      if(usedInvoiceIdx.has(i)||!(t.credit>0))continue;
       const inv=S.invoices[i];
-      if(inv.bankFingerprint)continue;
+      if(inv.bankFingerprint||inv.paidFromBankFp)continue;
       if(Math.abs(invTotal(inv)-amount)<0.02&&(d.includes(inv.client.toLowerCase())||d.includes(inv.id.toLowerCase()))){
         usedInvoiceIdx.add(i);found=true;
         lastFuzzyMatchPairs.push({kind:'invoice',bankTxn:t,recDate:inv.date,recDesc:inv.client+' – '+inv.id,recAmount:invTotal(inv)});
@@ -4854,7 +4986,7 @@ function recomputeAllMatches(){
     }
     if(!found){
       for(let i=0;i<S.expenses.length;i++){
-        if(usedExpenseIdx.has(i))continue;
+        if(usedExpenseIdx.has(i)||!(t.debit>0))continue;
         const exp=S.expenses[i];
         if(exp.bankFingerprint)continue;
         if(Math.abs(Number(exp.amount)-amount)<0.02){
@@ -4926,7 +5058,140 @@ function renderTimingMismatches(){
 // new batch re-includes rows that are already in history (e.g. you
 // accidentally re-upload the same statement), those are skipped; only rows
 // beyond what's already present are added.
+// ─── Bank & credit-card accounts ───
+// Every imported row belongs to an account. A business that imported before
+// accounts existed gets one default account holding all of its rows, so
+// nothing about its existing numbers changes.
+const DEFAULT_ACCOUNT_ID='acct_default';
+const CARD_PAYMENT_LABEL='Credit card payment';
+const TRANSFER_LABEL='Transfer between my accounts';
+let bankUploadCtx=null;      // {accountId, flip} for the statement(s) being imported right now
+let bankAccountFilter='all'; // which account the Bank page is showing
+function bankAccountById(id){return(S.bankAccounts||[]).find(a=>a.id===id)||null;}
+function isCardAccount(id){const a=bankAccountById(id);return!!a&&a.type==='card';}
+function accountLabel(a){return a.name+(a.last4?' ···'+a.last4:'');}
+function ensureBankAccounts(){
+  S.bankAccounts=Array.isArray(S.bankAccounts)?S.bankAccounts:[];
+  const txns=S.bankTxns||[];
+  if(txns.some(t=>!t.accountId)){
+    if(!bankAccountById(DEFAULT_ACCOUNT_ID))S.bankAccounts.unshift({id:DEFAULT_ACCOUNT_ID,name:'Main bank account',type:'bank',last4:''});
+    txns.forEach(t=>{if(!t.accountId)t.accountId=DEFAULT_ACCOUNT_ID;});
+  }
+}
+// The account an upload goes to: whatever is chosen on the Bank page, or — for
+// a business that has not set any up — a default one, so the first statement
+// never has to wait on a setup step.
+function resolveUploadAccountId(){
+  ensureBankAccounts();
+  const sel=$('bank-upload-account');
+  let id=sel&&sel.value;
+  if(!id||id==='__new__'||!bankAccountById(id)){
+    if(!S.bankAccounts.length)S.bankAccounts.push({id:DEFAULT_ACCOUNT_ID,name:'Main bank account',type:'bank',last4:''});
+    id=S.bankAccounts[0].id;
+  }
+  return id;
+}
+async function handleFiles(fileList){
+  const files=Array.from(fileList||[]);
+  if(!files.length)return;
+  const flip=!!($('bank-flip')&&$('bank-flip').checked);
+  bankUploadCtx={accountId:resolveUploadAccountId(),flip};
+  try{await handleFilesInner(files);}
+  finally{bankUploadCtx=null;if($('bank-flip'))$('bank-flip').checked=false;}
+}
+
+// ─── Rows that are neither income nor expense ───
+// Money moving between your own accounts, or a payment to a credit card. These
+// never reach the P&L (the spending was already counted when the card was
+// charged), but they do move cash and card balances.
+function transferOptionsHtml(current){
+  const opt=label=>{const val='__xfer__|||'+label;return `<option value="${escH(val)}"${current===label?' selected':''}>${escH(label)}</option>`;};
+  return `<optgroup label="Not income or expense">${opt(TRANSFER_LABEL)}${opt(CARD_PAYMENT_LABEL)}</optgroup>`;
+}
+// If this row had already been imported as an income/expense record, take that
+// one record back out so the transfer isn't also counted as a cost or revenue.
+function removeBankRecordFor(t){
+  if(!t.imported)return;
+  const fp=txnFingerprint(t);
+  if(t.debit>0){const i=S.expenses.findIndex(e=>e.bankFingerprint===fp);if(i>=0)S.expenses.splice(i,1);}
+  else{const i=S.invoices.findIndex(v=>v.fromBank&&v.bankFingerprint===fp);if(i>=0)S.invoices.splice(i,1);}
+  t.imported=false;
+}
+function markTransfer(idx,label){
+  const t=S.bankTxns[idx];
+  if(t.postedToBS)unpostBankTxnFromBalanceSheet(idx,{silent:true});
+  if(!t.transfer)removeBankRecordFor(t);
+  t.transfer=true;t.cat=label;t.matched='matched';
+}
+// Called from updateBankCat when the dropdown choice is a transfer option.
+function applyTransferChoice(idx,label){
+  const t=S.bankTxns[idx];
+  markTransfer(idx,label);
+  // Same payee, same direction, same account: a card is paid every month, so
+  // one choice should cover the repeats.
+  const key=merchantKey(t.desc);
+  let applied=0;
+  if(key){
+    S.bankTxns.forEach((o,i)=>{
+      if(i===idx||o.postedToBS||o.transfer)return;
+      if((o.credit>0)===(t.credit>0)&&o.accountId===t.accountId&&merchantKey(o.desc)===key){markTransfer(i,label);applied++;}
+    });
+  }
+  recomputeAllMatches();
+  saveBizData();render();renderBankPage();
+  toast(applied?`Marked as "${label}" — and ${applied} similar row${applied>1?'s':''} too`:`Marked as "${label}" — not counted as income or expense`);
+}
+
+// ─── Cash and card balances across several accounts ───
+// Cash is the sum of each bank account's own latest balance — never one running
+// balance across accounts. An account whose statement has no balance column
+// contributes its opening balance plus the net of its rows. Credit cards are
+// not cash: they are what is owed (opening amount + charges − payments).
+function cashFromBankAccounts(cashTxns){
+  const byAcct={};
+  cashTxns.forEach(t=>{const id=t.accountId||DEFAULT_ACCOUNT_ID;(byAcct[id]=byAcct[id]||[]).push(t);});
+  let total=0;
+  Object.keys(byAcct).forEach(id=>{
+    const list=byAcct[id];
+    const withBal=list.filter(t=>t.balance!=null);
+    if(withBal.length)total+=withBal[withBal.length-1].balance;
+    else{
+      const a=bankAccountById(id);
+      total+=(Number(a&&a.openingBalance)||0)+list.reduce((s,t)=>s+(t.credit||0)-(t.debit||0),0);
+    }
+  });
+  return total;
+}
+function cardLiabilitiesAsOf(asOfDate){
+  return(S.bankAccounts||[]).filter(a=>a.type==='card').map(a=>{
+    const rows=(S.bankTxns||[]).filter(t=>t.accountId===a.id&&(!asOfDate||t.date<=asOfDate));
+    const owed=(Number(a.openingOwed)||0)+rows.reduce((s,t)=>s+(t.debit||0)-(t.credit||0),0);
+    return{name:'Credit card — '+accountLabel(a),amount:owed};
+  });
+}
+// What was already owed before the first imported statement is a liability with
+// no matching asset or expense, so it comes out of opening equity.
+function cardOpeningOwed(){
+  return(S.bankAccounts||[]).filter(a=>a.type==='card').reduce((s,a)=>s+(Number(a.openingOwed)||0),0);
+}
+
 function mergeBankTxns(newTxns){
+  ensureBankAccounts();
+  // Stamp the account first: the fingerprint below includes it, so two
+  // different accounts can each hold a same-day, same-amount row.
+  const ctx=bankUploadCtx||{accountId:resolveUploadAccountId(),flip:false};
+  const cardAcct=isCardAccount(ctx.accountId);
+  newTxns.forEach(t=>{
+    t.accountId=ctx.accountId;
+    if(ctx.flip){
+      const d=t.debit;t.debit=t.credit;t.credit=d;
+      // The starting category was picked for the opposite direction.
+      t.cat=recalledCategory(t.desc)||(t.credit>0?autoCategoryIncome(t.desc):autoCategory(t.desc));
+    }
+    // Money coming IN on a card is a payment toward what is owed: a transfer,
+    // never income.
+    if(cardAcct&&t.credit>0){t.cat=CARD_PAYMENT_LABEL;t.transfer=true;t.matched='matched';}
+  });
   const existing=S.bankTxns||[];
   const existingFpCount={};
   existing.forEach(t=>{const fp=txnFingerprint(t);existingFpCount[fp]=(existingFpCount[fp]||0)+1;});
@@ -4991,7 +5256,8 @@ function txnFingerprint(t){
   const ref=trace?trace[1]:(origId?origId[1]:null);
   const amt=Number(t.debit||t.credit||0).toFixed(2);
   const base=(t.date||'')+'|'+amt+'|'+merchantKey(desc);
-  return ref?base+'|'+ref.toLowerCase():base;
+  const acct=(t.accountId&&t.accountId!==DEFAULT_ACCOUNT_ID)?'|acct:'+t.accountId:'';
+  return(ref?base+'|'+ref.toLowerCase():base)+acct;
 }
 
 function dragOver(e){e.preventDefault();$('upload-zone').classList.add('drag');}
@@ -5038,7 +5304,7 @@ async function handleFile(file){
 // and a bad file in the middle doesn't stop the good ones — its error is
 // collected and reported alongside a summary of what succeeded, instead of
 // alerting immediately and abandoning whatever hadn't been processed yet.
-async function handleFiles(fileList){
+async function handleFilesInner(fileList){
   const files=Array.from(fileList||[]);
   if(!files.length)return;
   if(files.length===1){await handleFile(files[0]);return;}
@@ -5602,7 +5868,105 @@ function clearBankDerivedBooks(){
   saveBizData();render();renderBankPage();
   toast(`Removed ${invs.length+exps.length} bank-imported record(s) ✓`);
 }
+// ─── Bank page: accounts ───
+function bankAccountName(id){const a=bankAccountById(id);return a?accountLabel(a):'—';}
+function bankViewTxns(){return(S.bankTxns||[]).filter(t=>bankAccountFilter==='all'||t.accountId===bankAccountFilter);}
+function setBankAccountFilter(id){bankAccountFilter=id;renderBankPage();}
+function accountSummary(a){
+  const tx=(S.bankTxns||[]).filter(t=>t.accountId===a.id);
+  if(a.type==='card'){
+    const owed=(Number(a.openingOwed)||0)+tx.reduce((s,t)=>s+(t.debit||0)-(t.credit||0),0);
+    return{count:tx.length,line:'Owed '+bizFmt(owed)};
+  }
+  const withBal=tx.filter(t=>t.balance!=null);
+  const bal=withBal.length?withBal[withBal.length-1].balance:(Number(a.openingBalance)||0)+tx.reduce((s,t)=>s+(t.credit||0)-(t.debit||0),0);
+  return{count:tx.length,line:'Balance '+bizFmt(bal)};
+}
+function renderBankAccountsStrip(){
+  const el=$('bank-accounts-strip');
+  if(!el)return;
+  const accts=S.bankAccounts||[];
+  if(bankAccountFilter!=='all'&&!bankAccountById(bankAccountFilter))bankAccountFilter='all';
+  const box=(onclick,active,inner)=>`<div onclick="${onclick}" style="cursor:pointer;min-width:180px;padding:10px 14px;border:1px solid ${active?'var(--accent)':'var(--bd2)'};border-radius:var(--r);background:${active?'var(--bg3)':'var(--bg)'}">${inner}</div>`;
+  let html='';
+  if(accts.length>1){
+    html+=box("setBankAccountFilter('all')",bankAccountFilter==='all',`<div style="font-size:13px;font-weight:600">All accounts</div><div style="font-size:12px;color:var(--tx2);margin-top:2px">${(S.bankTxns||[]).length} transactions</div>`);
+  }
+  html+=accts.map(a=>{
+    const s=accountSummary(a);
+    const tag=a.type==='card'?'Credit card':'Bank';
+    return box(`setBankAccountFilter('${escH(a.id)}')`,bankAccountFilter===a.id||accts.length===1,
+      `<div style="font-size:13px;font-weight:600;display:flex;justify-content:space-between;gap:10px"><span>${escH(accountLabel(a))}</span><span onclick="event.stopPropagation();openBankAccountModal('${escH(a.id)}')" title="Edit account" style="color:var(--tx2);font-weight:400">edit</span></div>
+       <div style="font-size:12px;color:var(--tx2);margin-top:2px">${tag} · ${s.count} transaction${s.count===1?'':'s'}</div>
+       <div style="font-size:12px;margin-top:2px">${s.line}</div>`);
+  }).join('');
+  html+=`<div onclick="openBankAccountModal(null)" style="cursor:pointer;min-width:140px;padding:10px 14px;border:1px dashed var(--bd2);border-radius:var(--r);color:var(--tx2);font-size:13px;display:flex;align-items:center;justify-content:center">+ Add account</div>`;
+  el.innerHTML=html;
+  const fsel=$('bank-filter-account');
+  if(fsel){
+    fsel.innerHTML='<option value="all">All accounts</option>'+accts.map(a=>`<option value="${escH(a.id)}">${escH(accountLabel(a))}</option>`).join('');
+    fsel.value=bankAccountFilter;
+  }
+}
+function renderUploadAccountSelect(){
+  const sel=$('bank-upload-account');
+  if(!sel)return;
+  const accts=S.bankAccounts||[];
+  const keep=sel.value;
+  sel.innerHTML=accts.map(a=>`<option value="${escH(a.id)}">${escH((a.type==='card'?'Credit card: ':'Bank: ')+accountLabel(a))}</option>`).join('')+'<option value="__new__">+ Add an account…</option>';
+  if(keep&&keep!=='__new__'&&[...sel.options].some(o=>o.value===keep))sel.value=keep;
+  else if(bankAccountFilter!=='all'&&bankAccountById(bankAccountFilter))sel.value=bankAccountFilter;
+  else if(accts.length)sel.value=accts[0].id;
+}
+function onUploadAccountChange(){if($('bank-upload-account').value==='__new__')openBankAccountModal(null,true);}
+
+let bankAcctFromUpload=false;
+function openBankAccountModal(id,fromUpload){
+  bankAcctFromUpload=!!fromUpload;
+  const a=id?bankAccountById(id):null;
+  const hasRows=!!a&&(S.bankTxns||[]).some(t=>t.accountId===a.id);
+  $('bank-acct-id').value=a?a.id:'';
+  $('bank-acct-title').textContent=a?'Edit account':'Add account';
+  $('bank-acct-type').value=a?a.type:'bank';
+  $('bank-acct-type').disabled=hasRows;
+  $('bank-acct-name').value=a?a.name:'';
+  $('bank-acct-last4').value=a?(a.last4||''):'';
+  $('bank-acct-open').value=a?((a.type==='card'?a.openingOwed:a.openingBalance)||''):'';
+  $('bank-acct-delete').style.display=a&&!hasRows?'':'none';
+  syncBankAcctType();
+  $('modal-bank-account').classList.add('open');
+}
+function syncBankAcctType(){
+  const card=$('bank-acct-type').value==='card';
+  $('bank-acct-open-label').textContent=card?'Amount already owed before your first imported statement (optional)':'Balance before your first imported transaction (optional)';
+  $('bank-acct-open-hint').textContent=card?'Leave blank if the card was new or paid off.':'Only used when the statement has no running-balance column.';
+}
+function saveBankAccount(){
+  const name=$('bank-acct-name').value.trim();
+  if(!name){alert('Give the account a name, like "Chase Checking".');return;}
+  const type=$('bank-acct-type').value==='card'?'card':'bank';
+  const open=parseFloat($('bank-acct-open').value)||0;
+  S.bankAccounts=S.bankAccounts||[];
+  const existingId=$('bank-acct-id').value;
+  let a=existingId?bankAccountById(existingId):null;
+  if(!a){a={id:'acct_'+Date.now().toString(36)};S.bankAccounts.push(a);}
+  a.name=name;a.type=type;a.last4=$('bank-acct-last4').value.replace(/\D/g,'').slice(0,4);
+  if(type==='card'){a.openingOwed=open;delete a.openingBalance;}else{a.openingBalance=open;delete a.openingOwed;}
+  saveBizData();
+  closeModal('bank-account');
+  render();renderBankPage();
+  if(bankAcctFromUpload&&$('bank-upload-account'))$('bank-upload-account').value=a.id;
+  toast(name+' saved ✓');
+}
+function deleteBankAccount(){
+  const id=$('bank-acct-id').value;
+  if((S.bankTxns||[]).some(t=>t.accountId===id)){toast('This account still has transactions');return;}
+  S.bankAccounts=(S.bankAccounts||[]).filter(a=>a.id!==id);
+  saveBizData();closeModal('bank-account');render();renderBankPage();toast('Account removed');
+}
+
 function renderBankPage(){
+  ensureBankAccounts();renderBankAccountsStrip();renderUploadAccountSelect();
   const hasTxns=S.bankTxns&&S.bankTxns.length>0;
   $('bank-upload-section').style.display=(hasTxns&&!bankUploadForceOpen)?'none':'block';
   $('bank-results').style.display=hasTxns?'block':'none';
@@ -5613,20 +5977,21 @@ function renderBankPage(){
   renderStatementArchive();
   renderBankDerivedCleanup();
   if(!hasTxns)return;
-  const txns=S.bankTxns;
-  const totalIn=txns.reduce((s,t)=>s+t.credit,0);
-  const totalOut=txns.reduce((s,t)=>s+t.debit,0);
+  const txns=bankViewTxns();
+  const realTxns=txns.filter(t=>!t.transfer);
+  const totalIn=realTxns.reduce((s,t)=>s+t.credit,0);
+  const totalOut=realTxns.reduce((s,t)=>s+t.debit,0);
   const netFlow=totalIn-totalOut;
   const matched=txns.filter(t=>t.matched==='matched').length;
   $('bank-metrics').innerHTML=`
-    <div class="metric"><div class="metric-label">Money in</div><div class="metric-value green">${bizFmt(totalIn)}</div><div class="metric-sub">${txns.filter(t=>t.credit>0).length} transactions</div></div>
-    <div class="metric"><div class="metric-label">Money out</div><div class="metric-value red">${bizFmt(totalOut)}</div><div class="metric-sub">${txns.filter(t=>t.debit>0).length} transactions</div></div>
+    <div class="metric"><div class="metric-label">Money in</div><div class="metric-value green">${bizFmt(totalIn)}</div><div class="metric-sub">${realTxns.filter(t=>t.credit>0).length} transactions</div></div>
+    <div class="metric"><div class="metric-label">Money out</div><div class="metric-value red">${bizFmt(totalOut)}</div><div class="metric-sub">${realTxns.filter(t=>t.debit>0).length} transactions</div></div>
     <div class="metric"><div class="metric-label">Net cash flow</div><div class="metric-value ${netFlow>=0?'green':'red'}">${netFlow>=0?'+':''}${bizFmt(netFlow)}</div><div class="metric-sub">${matched}/${txns.length} matched to books</div></div>`;
   renderCashflowChart(txns);renderCatBars(txns);renderBankTxns(txns);renderReconciliation();renderMonthlyReconciliation();renderTimingMismatches();renderFingerprintMismatches();
 }
 
 function renderCashflowChart(txns){
-  const months={};txns.forEach(t=>{const m=t.date.slice(0,7);if(!months[m])months[m]={in:0,out:0};months[m].in+=t.credit;months[m].out+=t.debit;});
+  const months={};txns.forEach(t=>{if(t.transfer)return;const m=t.date.slice(0,7);if(!months[m])months[m]={in:0,out:0};months[m].in+=t.credit;months[m].out+=t.debit;});
   const keys=Object.keys(months).sort();if(!keys.length){$('cashflow-chart').innerHTML='<p class="empty">No data</p>';return;}
   const W=Math.max(400,keys.length*80+60),H=180,chartH=H-40;const maxVal=Math.max(...keys.map(k=>Math.max(months[k].in,months[k].out)),1);const barW=Math.min(28,Math.floor((W-60)/keys.length/2-4));
   let bars='',labels='',vals='';
@@ -5636,7 +6001,7 @@ function renderCashflowChart(txns){
 }
 
 function renderCatBars(txns){
-  const cats={};txns.filter(t=>t.debit>0).forEach(t=>{cats[t.cat]=(cats[t.cat]||0)+t.debit;});
+  const cats={};txns.filter(t=>t.debit>0&&!t.transfer).forEach(t=>{cats[t.cat]=(cats[t.cat]||0)+t.debit;});
   const sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]);const max=sorted[0]?sorted[0][1]:1;
   $('cat-bars').innerHTML=sorted.length?sorted.map(([cat,val])=>`<div class="cat-bar-row"><div class="cat-bar-label">${cat}</div><div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.round((val/max)*100)}%"></div></div><div class="cat-bar-val">${bizFmt(val)}</div></div>`).join(''):'<p class="empty">No spending data</p>';
 }
@@ -5665,7 +6030,7 @@ function renderBankTxns(txns){
   const groupCounts={};
   txns.forEach(t=>{const k=merchantKey(t.desc);if(k)groupCounts[k]=(groupCounts[k]||0)+1;});
 
-  let rows=txns.filter(t=>(!f.month||t.date.slice(0,7)===f.month)&&(!f.cat||t.cat===f.cat)&&matchesText(t.desc,f.q));
+  let rows=txns.filter(t=>(bankAccountFilter==='all'||t.accountId===bankAccountFilter)&&(!f.month||t.date.slice(0,7)===f.month)&&(!f.cat||t.cat===f.cat)&&matchesText(t.desc,f.q));
   const amountOf=t=>t.credit>0?t.credit:-(t.debit||0);
   if(f.sort==='date-asc')rows=rows.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
   else if(f.sort==='date-desc')rows=rows.slice().sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
@@ -5685,11 +6050,11 @@ function renderBankTxns(txns){
     // group and nothing selected in the income/expense group, since the
     // transaction isn't recorded as an Expense/Invoice at all.
     const catOptions=t.postedToBS
-      ?(t.credit>0?categoryOptionsHtml('income'):expenseOrReturnOptionsHtml())+bsAccountOptionsHtml(t.bsKind,t.bsAccount)
-      :(t.credit>0?categoryOptionsHtml('income',t.cat):expenseOrReturnOptionsHtml(t.cat))+bsAccountOptionsHtml();
-    const statusBadge=t.postedToBS?`<span class="badge posted" title="Posted to ${escH(t.bsAccount)} via a journal entry instead of an Expense/Invoice">→ ${escH(t.bsAccount)}</span>`:`<span class="badge ${t.matched}">${t.matched}</span>`;
-    return `<tr><td><input type="checkbox" onchange="toggleBankTxnSelect(${idx},this.checked)" style="accent-color:var(--accent)"${t.selected?' checked':''}></td><td>${t.date}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${escH(t.desc)}">${escH(t.desc)}${simBadge}</td><td style="color:var(--red);font-weight:${t.debit>0?600:400}">${t.debit>0?bizFmt(t.debit):'—'}</td><td style="color:var(--green);font-weight:${t.credit>0?600:400}">${t.credit>0?bizFmt(t.credit):'—'}</td><td style="color:var(--tx2)">${t.balance!=null?bizFmt(t.balance):'—'}</td><td><select class="cat-select" onchange="updateBankCat(${idx},this.value)">${catOptions}</select></td><td>${statusBadge}</td><td><button class="btn sm danger" onclick="deleteBankTxn(${idx})" title="Delete this bank transaction (only removes it from Bank Import — a real duplicate entry, for example)"><svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></td></tr>`;
-  }).join(''):`<tr><td colspan="9" class="empty">${txns.length?'No transactions match this filter':'No transactions'}</td></tr>`;
+      ?(t.credit>0?categoryOptionsHtml('income'):expenseOrReturnOptionsHtml())+bsAccountOptionsHtml(t.bsKind,t.bsAccount)+transferOptionsHtml(null)
+      :(t.credit>0?categoryOptionsHtml('income',t.transfer?undefined:t.cat):expenseOrReturnOptionsHtml(t.transfer?undefined:t.cat))+bsAccountOptionsHtml()+transferOptionsHtml(t.transfer?t.cat:null);
+    const statusBadge=t.transfer?'<span class="badge posted" title="Not income or expense: money moving between your own accounts, or a payment to a card">transfer</span>':t.postedToBS?`<span class="badge posted" title="Posted to ${escH(t.bsAccount)} via a journal entry instead of an Expense/Invoice">→ ${escH(t.bsAccount)}</span>`:`<span class="badge ${t.matched}">${t.matched}</span>`;
+    return `<tr><td><input type="checkbox" onchange="toggleBankTxnSelect(${idx},this.checked)" style="accent-color:var(--accent)"${t.selected?' checked':''}></td><td>${t.date}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${escH(t.desc)}">${escH(t.desc)}${simBadge}</td><td style="font-size:12px;color:var(--tx2);white-space:nowrap">${escH(bankAccountName(t.accountId))}</td><td style="color:var(--red);font-weight:${t.debit>0?600:400}">${t.debit>0?bizFmt(t.debit):'—'}</td><td style="color:var(--green);font-weight:${t.credit>0?600:400}">${t.credit>0?bizFmt(t.credit):'—'}</td><td style="color:var(--tx2)">${t.balance!=null?bizFmt(t.balance):'—'}</td><td><select class="cat-select" onchange="updateBankCat(${idx},this.value)">${catOptions}</select></td><td>${statusBadge}</td><td><button class="btn sm danger" onclick="deleteBankTxn(${idx})" title="Delete this bank transaction (only removes it from Bank Import — a real duplicate entry, for example)"><svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></td></tr>`;
+  }).join(''):`<tr><td colspan="10" class="empty">${txns.length?'No transactions match this filter':'No transactions'}</td></tr>`;
   updateBankSelectionUI();
 }
 
@@ -5732,11 +6097,13 @@ function updateBankCat(idx,cat){
   // selection is — normal category or a different BS account — so no
   // orphaned journal entry is left behind either way.
   if(t.postedToBS) unpostBankTxnFromBalanceSheet(idx,{silent:true});
+  if(cat.startsWith('__xfer__|||')){applyTransferChoice(idx,cat.split('|||')[1]);return;}
   if(cat.startsWith('__bs__|||')){
     const[,kind,...rest]=cat.split('|||');
     postBankTxnToBalanceSheet(idx,kind,rest.join('|||'));
     return;
   }
+  if(t.transfer){t.transfer=false;t.matched='unmatched';}
   t.cat=cat;
   rememberCategory(t.desc,cat);
   // Most bank statements repeat the same handful of payers many times over —
@@ -5748,7 +6115,7 @@ function updateBankCat(idx,cat){
   if(key){
     S.bankTxns.forEach((other,i)=>{
       if(i===idx)return;
-      if(other.postedToBS)return;
+      if(other.postedToBS||other.transfer)return;
       if((other.credit>0)===(t.credit>0)&&merchantKey(other.desc)===key&&other.cat!==cat){other.cat=cat;applied++;}
     });
   }
@@ -6001,7 +6368,7 @@ function findFingerprintMismatches(){
     (bankFp[fp]=bankFp[fp]||[]).push(t);
   });
   const bookFp={};
-  (S.invoices||[]).forEach(inv=>{if(inv.bankFingerprint)(bookFp[inv.bankFingerprint]=bookFp[inv.bankFingerprint]||[]).push({kind:'invoice',record:inv});});
+  (S.invoices||[]).forEach(inv=>{const bfp=inv.bankFingerprint||inv.paidFromBankFp;if(bfp)(bookFp[bfp]=bookFp[bfp]||[]).push({kind:'invoice',record:inv});});
   (S.expenses||[]).forEach(exp=>{if(exp.bankFingerprint)(bookFp[exp.bankFingerprint]=bookFp[exp.bankFingerprint]||[]).push({kind:'expense',record:exp});});
   const allFps=new Set([...Object.keys(bankFp),...Object.keys(bookFp)]);
   const mismatches=[];
@@ -6077,7 +6444,7 @@ function importToExpenses(){
   // Skip rows already flagged 'matched' — that means recomputeAllMatches()
   // already found this exact transaction recorded in your books, so
   // importing it again would double-count it.
-  const debits=S.bankTxns.filter(t=>t.debit>0&&t.matched!=='matched'&&!t.imported);
+  const debits=S.bankTxns.filter(t=>t.debit>0&&t.matched!=='matched'&&!t.imported&&!t.transfer);
   if(!debits.length){toast('No new debit transactions to import');return;}
   // Count (not just presence) existing fingerprints, once, before this loop —
   // some lines have no reference number, so two real, separate same-day
@@ -6152,7 +6519,7 @@ function rebuildBooksFromBank(){
   // date+amount+description and checking it against the bank's current
   // fingerprint set works regardless of whether the tag is present, because
   // it's testing the same underlying identity the tag was only a cache of.
-  const eligible=(S.bankTxns||[]).filter(t=>!t.postedToBS&&t.cat&&(t.credit>0||t.debit>0));
+  const eligible=(S.bankTxns||[]).filter(t=>!t.postedToBS&&!t.transfer&&!(t.credit>0&&isCardAccount(t.accountId))&&t.cat&&(t.credit>0||t.debit>0));
   // Identification uses a COARSE key (date+amount+merchantKey) rather than
   // the full txnFingerprint. txnFingerprint appends a trace/orig-ID number
   // when the description contains one, and which ref (if any) a given
@@ -6176,10 +6543,14 @@ function rebuildBooksFromBank(){
   S.invoices=S.invoices.filter(i=>!isBankDerivedInv(i));
   S.expenses=S.expenses.filter(e=>!isBankDerivedExp(e));
   let addedInv=0,addedExp=0;
+  // A deposit that settled an open invoice stays on that invoice, not as new income.
+  const settledFp={};
+  S.invoices.forEach(i=>{if(i.paidFromBankFp)settledFp[i.paidFromBankFp]=(settledFp[i.paidFromBankFp]||0)+1;});
   eligible.forEach(t=>{
     const fp=txnFingerprint(t);
+    if(t.credit>0&&settledFp[fp]>0){settledFp[fp]--;return;}
     if(t.credit>0){
-      S.invoices.push({id:'BANK-'+t.date.replace(/-/g,'')+'-r'+addedInv,client:titleCaseFromKey(merchantKey(t.desc))||'Bank Deposit',date:t.date,due:t.date,desc:t.desc,cat:t.cat,amount:t.credit,taxRate:0,status:'Paid',fromBank:true,bankFingerprint:fp});
+      S.invoices.push({id:'BANK-'+t.date.replace(/-/g,'')+'-r'+addedInv,client:titleCaseFromKey(merchantKey(t.desc))||'Bank Deposit',date:t.date,due:t.date,desc:t.desc,cat:t.cat,amount:t.credit,taxRate:0,status:'Paid',paidDate:t.date,fromBank:true,bankFingerprint:fp});
       addedInv++;
     }else if(t.debit>0){
       S.expenses.push({date:t.date,desc:t.desc,cat:t.cat,amount:t.debit,vendor:titleCaseFromKey(merchantKey(t.desc))||t.desc.split(' ')[0]||'—',deductible:true,bankFingerprint:fp});
@@ -6191,32 +6562,54 @@ function rebuildBooksFromBank(){
   toast(`Rebuilt ✓ ${addedInv} invoices + ${addedExp} expenses regenerated 1:1 from your bank transactions`);
 }
 
-// Deposits/credits had no equivalent to "Import debits as expenses" — they'd
-// get a category on the Bank page but never actually become recorded revenue,
-// so Dashboard/P&L "Revenue" stayed at $0 even after a full statement was
-// categorized. This creates a Paid "invoice" record per deposit (tagged
-// fromBank so it's identifiable and so re-imports can dedupe against it)
-// using the payer name recovered by merchantKey() as the client.
+// A deposit is recorded as income WITHOUT creating an invoice.
+// If it settles an invoice that is still open (same amount, and the payer's
+// name or the invoice number appears in the bank text — or it is the only open
+// invoice for that amount), that invoice is marked Paid on the deposit date.
+// Otherwise it becomes an income record tagged fromBank: the Invoices list
+// hides those by default, while the P&L, ledger and revenue-by-client still
+// count them (that is where the payer's name goes).
+function findOpenInvoiceForDeposit(t){
+  const open=S.invoices.filter(i=>!i.fromBank&&!i.paidFromBankFp&&(i.status==='Pending'||i.status==='Overdue'||i.status==='Sent')&&Math.abs(invTotal(i)-t.credit)<0.02&&(i.date||'')<=t.date);
+  if(!open.length)return null;
+  const d=(t.desc||'').toLowerCase();
+  const byName=open.filter(i=>{
+    const c=(i.client||'').toLowerCase().trim();
+    return(c.length>=3&&d.includes(c))||(i.id&&d.includes(String(i.id).toLowerCase()));
+  });
+  if(byName.length===1)return byName[0];
+  if(byName.length===0&&open.length===1)return open[0];
+  return null;
+}
+// Runs over every unprocessed deposit first — including ones the matcher already
+// marked "matched" because an unpaid invoice looks like them. Matching only
+// says the books contain something similar; this is what actually records the
+// invoice as paid.
+function settleOpenInvoicesFromDeposits(){
+  let n=0;
+  S.bankTxns.forEach(t=>{
+    if(!(t.credit>0)||t.imported||t.transfer||t.postedToBS||isCardAccount(t.accountId))return;
+    const inv=findOpenInvoiceForDeposit(t);
+    if(!inv)return;
+    inv.status='Paid';inv.paidDate=t.date;inv.paidFromBankFp=txnFingerprint(t);
+    t.imported=true;
+    n++;
+  });
+  return n;
+}
 function importBankCreditsAsIncome(){
-  const credits=S.bankTxns.filter(t=>t.credit>0&&t.matched!=='matched'&&!t.imported);
-  if(!credits.length){toast('No new deposit transactions to import');return;}
-  // Count (not just presence) fingerprints that existed BEFORE this click,
-  // once — this is what catches re-importing a statement you already
-  // processed in a prior session, WITHOUT wrongly skipping a genuine 2nd
-  // occurrence. Some lines (e.g. "Remote Online Deposit" with no reference
-  // number) carry no way to tell two genuinely separate same-day, same-amount
-  // deposits apart from the text alone — they produce an identical
-  // fingerprint. A plain existence check would treat the 2nd/3rd/4th of those
-  // real, distinct deposits as a duplicate of the 1st and silently drop it,
-  // under-counting revenue. Budgeting by count lets exactly as many new
-  // records get created as there are bank rows beyond what's already on the
-  // books for that fingerprint.
+  ensureBankAccounts();
+  const settled=settleOpenInvoicesFromDeposits();
+  if(settled)recomputeAllMatches();
+  // Card "credits" are payments toward the balance and transfers are not income.
+  const credits=S.bankTxns.filter(t=>t.credit>0&&t.matched!=='matched'&&!t.imported&&!t.transfer&&!isCardAccount(t.accountId));
+  if(!credits.length&&!settled){toast('No new deposit transactions to import');return;}
+  // Budget by fingerprint COUNT (not presence) so two genuinely separate
+  // same-day, same-amount deposits are both kept, while re-importing a
+  // statement you already processed adds nothing. Invoices settled by a deposit
+  // carry the fingerprint in paidFromBankFp and count the same way.
   const existingFpCount={};
-  S.invoices.forEach(inv=>{if(inv.bankFingerprint)existingFpCount[inv.bankFingerprint]=(existingFpCount[inv.bankFingerprint]||0)+1;});
-  // credits only contains rows NOT already marked 'matched' — but some OTHER
-  // bank row sharing the same fingerprint may already be 'matched' (i.e.
-  // already claiming one of the existingFpCount slots above). Subtract those
-  // out so the budget below reflects what's actually still unclaimed.
+  S.invoices.forEach(inv=>{const fp=inv.bankFingerprint||inv.paidFromBankFp;if(fp)existingFpCount[fp]=(existingFpCount[fp]||0)+1;});
   const claimedByMatched={};
   S.bankTxns.forEach(t=>{
     if(t.credit>0&&t.matched==='matched'){
@@ -6232,12 +6625,13 @@ function importBankCreditsAsIncome(){
     const already=Math.max(0,(existingFpCount[fp]||0)-(claimedByMatched[fp]||0));
     const seenBefore=seenFpCount[fp]||0;
     seenFpCount[fp]=seenBefore+1;
-    if(seenBefore<already)return; // this occurrence is already covered by an existing record
-    S.invoices.push({id:'BANK-'+t.date.replace(/-/g,'')+'-'+i,client:titleCaseFromKey(merchantKey(t.desc))||'Bank Deposit',date:t.date,due:t.date,desc:t.desc,cat:t.cat,amount:t.credit,taxRate:0,status:'Paid',fromBank:true,bankFingerprint:fp});
+    if(seenBefore<already)return; // already covered by an existing record
+    S.invoices.push({id:'BANK-'+t.date.replace(/-/g,'')+'-'+i,client:titleCaseFromKey(merchantKey(t.desc))||'Bank Deposit',date:t.date,due:t.date,desc:t.desc,cat:t.cat,amount:t.credit,taxRate:0,status:'Paid',paidDate:t.date,fromBank:true,bankFingerprint:fp});
     added++;
   });
   recomputeAllMatches();
-  saveBizData();render();renderBankPage();toast(added+' deposits imported as revenue ✓');
+  saveBizData();render();renderBankPage();
+  toast(added+' deposit'+(added===1?'':'s')+' recorded as income'+(settled?` · ${settled} matched to open invoice${settled===1?'':'s'} and marked Paid`:'')+' ✓');
 }
 
 // Bank history is now cumulative across every statement you've ever
@@ -10007,19 +10401,15 @@ function downloadInvoicePDF(idx){
   toast('Invoice PDF opened — use Print → Save as PDF (see the tip banner on that tab)');
 }
 
-function emailInvoice(idx){
+// Emailing an invoice. When the server has an email service set up, the platform
+// sends it itself (the server builds the message from the saved invoice). If it
+// does not, this falls back to opening the user's own email app, as before.
+async function waitForCloudSave(bizId){
+  const q=cloudPushQueue[bizId];
+  for(let i=0;i<100&&q&&(q.running||q.next);i++)await new Promise(r=>setTimeout(r,100));
+}
+function emailInvoiceViaMailApp(idx,email){
   const inv=S.invoices[idx];
-  if(!inv){toast('Invoice not found');return;}
-  const client=S.clients.find(c=>c.name===inv.client);
-  let email=(inv.email||(client&&client.email)||'').trim();
-  if(!email){
-    email=(prompt('Email address to send '+inv.id+' to '+inv.client+':')||'').trim();
-    if(!email)return;
-    inv.email=email;
-    if(client&&!client.email)client.email=email;
-    saveBizData();
-    renderInvoices();
-  }
   const biz=activeBiz();
   const tax=Number(inv.amount)*Number(inv.taxRate||0)/100;
   const total=Number(inv.amount)+tax;
@@ -10032,6 +10422,35 @@ function emailInvoice(idx){
     window.location.href=`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   },500);
   toast('Opening your email app — attach the invoice PDF (use Print → Save as PDF in the tab that just opened), then hit send.');
+}
+async function emailInvoice(idx){
+  const inv=S.invoices[idx];
+  if(!inv){toast('Invoice not found');return;}
+  const client=S.clients.find(c=>c.name===inv.client);
+  let email=(inv.email||(client&&client.email)||'').trim();
+  if(!email){
+    email=(prompt('Email address to send '+inv.id+' to '+inv.client+':')||'').trim();
+    if(!email)return;
+    inv.email=email;
+    if(client&&!client.email)client.email=email;
+    saveBizData();
+    renderInvoices();
+  }
+  const canSendDirect=!!(window.CB_FIREBASE&&window.CB_FIREBASE.emailEnabled)&&cloudActive();
+  if(!canSendDirect){emailInvoiceViaMailApp(idx,email);return;}
+  const total=Number(inv.amount)*(1+Number(inv.taxRate||0)/100);
+  if(!confirm('Email invoice '+inv.id+' ('+bizFmt(total)+') to '+email+'?\n\nThe customer gets the invoice in the email itself, with your payment details if they are switched on for this invoice.'))return;
+  try{
+    // The server builds the message from the saved invoice, so make sure the latest edits have reached it.
+    await waitForCloudSave(META.activeBizId);
+    await window.CB_FIREBASE.apiRequest('/businesses/'+encodeURIComponent(META.activeBizId)+'/invoices/send',{method:'POST',body:JSON.stringify({invoiceRef:inv.id,to:email})});
+    inv.emailedAt=new Date().toISOString();inv.emailedTo=email;
+    saveBizData();renderInvoices();
+    toast('Invoice '+inv.id+' emailed to '+email+' ✓');
+  }catch(e){
+    if(e.code==='email_not_configured'){emailInvoiceViaMailApp(idx,email);return;}
+    alert('The invoice was not sent: '+(e.message||e));
+  }
 }
 
 // ═══════════════════════════════════════
@@ -10123,7 +10542,7 @@ function getAlerts(){
 
 function markInvoicePaid(id){
   const inv=S.invoices.find(i=>i.id===id);
-  if(inv){inv.status='Paid';saveBizData();render();renderAlerts();toast('Invoice '+id+' marked as paid ✓');}
+  if(inv){inv.status='Paid';inv.paidDate=TODAY;saveBizData();render();renderAlerts();toast('Invoice '+id+' marked as paid ✓');}
 }
 
 function renderAlerts(){

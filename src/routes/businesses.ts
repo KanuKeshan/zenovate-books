@@ -35,6 +35,7 @@ const COLUMNS = {
   accountNumber: 'account_number',
   routingNumber: 'routing_number',
   accountType: 'account_type',
+  accountingBasis: 'accounting_basis',
 } as const;
 
 type Field = keyof typeof COLUMNS;
@@ -54,6 +55,7 @@ const businessFields = {
   accountNumber: z.string().max(64),
   routingNumber: z.string().max(64),
   accountType: z.string().max(64),
+  accountingBasis: z.enum(['cash', 'accrual']).nullable(),
 };
 
 const createIn = z
@@ -72,6 +74,7 @@ const createIn = z
     accountNumber: businessFields.accountNumber.optional(),
     routingNumber: businessFields.routingNumber.optional(),
     accountType: businessFields.accountType.optional(),
+    accountingBasis: businessFields.accountingBasis.optional(),
   })
   .strict();
 
@@ -94,6 +97,7 @@ const patchIn = z
     accountNumber: businessFields.accountNumber.optional(),
     routingNumber: businessFields.routingNumber.optional(),
     accountType: businessFields.accountType.optional(),
+    accountingBasis: businessFields.accountingBasis.optional(),
   })
   .strict();
 
@@ -147,7 +151,7 @@ const DEFAULT_CATEGORIES: Record<string, string[]> = {
 /** The columns a detail response is built from, named once. */
 const DETAIL_COLUMNS = `id, firm_id, name, type, data_source, currency, color, logo,
          address, email, payment_instructions, bank_name, account_name,
-         account_number, routing_number, account_type, version::text AS version,
+         account_number, routing_number, account_type, accounting_basis, version::text AS version,
          created_at, updated_at, archived_at`;
 
 const SELECT_DETAIL = `SELECT ${DETAIL_COLUMNS} FROM businesses WHERE id = $1`;
@@ -170,6 +174,7 @@ function shape(r: Record<string, unknown>, role?: string): Record<string, unknow
     accountNumber: r['account_number'],
     routingNumber: r['routing_number'],
     accountType: r['account_type'],
+    accountingBasis: r['accounting_basis'] ?? null,
     version: r['version'],
     createdAt: r['created_at'],
     updatedAt: r['updated_at'],
@@ -194,7 +199,7 @@ export default async function businessesRoutes(app: FastifyInstance): Promise<vo
     const { rows } = await getPool().query(
       `SELECT b.id, b.firm_id, b.name, b.type, b.data_source, b.currency, b.color,
               b.address, b.email, b.payment_instructions, b.bank_name, b.account_name,
-              b.account_number, b.routing_number, b.account_type, b.version::text AS version,
+              b.account_number, b.routing_number, b.account_type, b.accounting_basis, b.version::text AS version,
               b.created_at, b.updated_at, b.archived_at, ba.role
          FROM businesses b
          JOIN business_access ba ON ba.business_id = b.id AND ba.user_id = $1
@@ -227,16 +232,16 @@ export default async function businessesRoutes(app: FastifyInstance): Promise<vo
       const { rows } = await c.query(
         `INSERT INTO businesses (firm_id,name,type,data_source,currency,color,logo,address,email,
                                  payment_instructions,bank_name,account_name,account_number,
-                                 routing_number,account_type)
+                                 routing_number,account_type,accounting_basis)
          VALUES ($1,$2,COALESCE($3,'Service-based'),COALESCE($4,'ledger'),COALESCE($5,'$'),
                  COALESCE($6,'#534AB7'),$7,COALESCE($8,''),COALESCE($9,''),COALESCE($10,''),
-                 COALESCE($11,''),COALESCE($12,''),COALESCE($13,''),COALESCE($14,''),COALESCE($15,''))
+                 COALESCE($11,''),COALESCE($12,''),COALESCE($13,''),COALESCE($14,''),COALESCE($15,''),$16)
          RETURNING ${DETAIL_COLUMNS}`,
         [
           firmId, b.name, b.type ?? null, b.dataSource ?? null, b.currency ?? null, b.color ?? null,
           b.logo ?? null, b.address ?? null, b.email ?? null, b.paymentInstructions ?? null,
           b.bankName ?? null, b.accountName ?? null, b.accountNumber ?? null,
-          b.routingNumber ?? null, b.accountType ?? null,
+          b.routingNumber ?? null, b.accountType ?? null, b.accountingBasis ?? null,
         ],
       );
       const row = rows[0] as Record<string, unknown>;

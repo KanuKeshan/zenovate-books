@@ -115,6 +115,8 @@ const KNOWN_KEYS = new Set([
 // kept whole in the `extra` JSONB column instead of being silently dropped.
 const INVOICE_COLUMN_KEYS = new Set(['id', 'client', 'date', 'due', 'desc', 'cat', 'amount', 'taxRate', 'status', 'migrated']);
 const EXPENSE_COLUMN_KEYS = new Set(['id', 'date', 'vendor', 'desc', 'cat', 'amount', 'deductible', 'hasReceipt']);
+// 'selected' is checkbox state in the UI, not data worth keeping.
+const BANK_COLUMN_KEYS = new Set(['date', 'desc', 'amount', 'debit', 'credit', 'balance', 'cat', 'matched', 'posted', 'postedToBS', 'source', 'selected']);
 
 function extraFields(row: Record<string, unknown>, columnKeys: Set<string>): string {
   const extra: Record<string, unknown> = {};
@@ -138,7 +140,7 @@ export default async function snapshotRoutes(app: FastifyInstance): Promise<void
     const { rows } = await getPool().query(
       `SELECT b.id, b.name, b.type, b.data_source, b.currency, b.color, b.logo,
               b.address, b.email, b.payment_instructions, b.bank_name, b.account_name,
-              b.account_number, b.routing_number, b.account_type, b.version::text AS version,
+              b.account_number, b.routing_number, b.account_type, b.accounting_basis, b.version::text AS version,
               ba.role
          FROM businesses b
          JOIN business_access ba ON ba.business_id = b.id AND ba.user_id = $1
@@ -153,6 +155,7 @@ export default async function snapshotRoutes(app: FastifyInstance): Promise<void
         paymentInstructions: r.payment_instructions, bankName: r.bank_name,
         accountName: r.account_name, accountNumber: r.account_number,
         routingNumber: r.routing_number, accountType: r.account_type,
+        accountingBasis: r.accounting_basis ?? null,
         version: r.version, role: r.role,
       })),
     };
@@ -175,6 +178,7 @@ export default async function snapshotRoutes(app: FastifyInstance): Promise<void
       accountNumber: z.string().max(64).optional(),
       routingNumber: z.string().max(64).optional(),
       accountType: z.string().max(64).optional(),
+      accountingBasis: z.enum(['cash', 'accrual']).nullable().optional(),
     }).passthrough()).max(500),
   }).strict();
 
@@ -206,12 +210,12 @@ export default async function snapshotRoutes(app: FastifyInstance): Promise<void
                     payment_instructions=COALESCE($10,payment_instructions),
                     bank_name=COALESCE($11,bank_name), account_name=COALESCE($12,account_name),
                     account_number=COALESCE($13,account_number), routing_number=COALESCE($14,routing_number),
-                    account_type=COALESCE($15,account_type), updated_at=now()
+                    account_type=COALESCE($15,account_type), accounting_basis=COALESCE($16,accounting_basis), updated_at=now()
               WHERE id=$1`,
             [b.id, b.name, b.type ?? null, b.dataSource ?? null, b.currency ?? null, b.color ?? null,
              b.logo ?? null, b.address ?? null, b.email ?? null, b.paymentInstructions ?? null,
              b.bankName ?? null, b.accountName ?? null, b.accountNumber ?? null,
-             b.routingNumber ?? null, b.accountType ?? null],
+             b.routingNumber ?? null, b.accountType ?? null, b.accountingBasis ?? null],
           );
           continue;
         }
@@ -219,15 +223,15 @@ export default async function snapshotRoutes(app: FastifyInstance): Promise<void
         const { rows } = await c.query<{ id: string }>(
           `INSERT INTO businesses (firm_id,name,type,data_source,currency,color,logo,address,email,
                                    payment_instructions,bank_name,account_name,account_number,
-                                   routing_number,account_type)
+                                   routing_number,account_type,accounting_basis)
            VALUES ($1,$2,COALESCE($3,'Service-based'),COALESCE($4,'ledger'),COALESCE($5,'$'),
                    COALESCE($6,'#534AB7'),$7,COALESCE($8,''),COALESCE($9,''),COALESCE($10,''),
-                   COALESCE($11,''),COALESCE($12,''),COALESCE($13,''),COALESCE($14,''),COALESCE($15,''))
+                   COALESCE($11,''),COALESCE($12,''),COALESCE($13,''),COALESCE($14,''),COALESCE($15,''),$16)
            RETURNING id`,
           [firmId, b.name, b.type ?? null, b.dataSource ?? null, b.currency ?? null, b.color ?? null,
            b.logo ?? null, b.address ?? null, b.email ?? null, b.paymentInstructions ?? null,
            b.bankName ?? null, b.accountName ?? null, b.accountNumber ?? null,
-           b.routingNumber ?? null, b.accountType ?? null],
+           b.routingNumber ?? null, b.accountType ?? null, b.accountingBasis ?? null],
         );
         const newId = rows[0]!.id;
         await c.query(
@@ -267,6 +271,11 @@ export default async function snapshotRoutes(app: FastifyInstance): Promise<void
     for (const [k, v] of Object.entries(body)) if (!KNOWN_KEYS.has(k)) passthrough[k] = v;
 
     const written = await tx(async (c) => {
+      // One save per business at a time. A save replaces the whole set of rows, so two
+      // running together would each delete, then both insert the same invoice numbers
+      // and the loser would fail with a unique-constraint error. Taking the business row
+      // makes the second wait for the first to commit, then replace what it wrote.
+      await c.query('SELECT id FROM businesses WHERE id=$1 FOR UPDATE', [businessId]);
       const expected = body.version == null ? null : String(body.version);
       // Replace-in-place inside one transaction. A snapshot save is the whole
       // business or none of it; a partial write would leave books that balance
@@ -368,11 +377,11 @@ export default async function snapshotRoutes(app: FastifyInstance): Promise<void
         while (seenKeys.has(key)) key = `${dedupeKey(b.date, cents, b.desc ?? '')}#${++suffix}`;
         seenKeys.add(key);
         await c.query(
-          `INSERT INTO bank_txns (business_id,txn_date,description,amount,balance,category,matched,posted,source,dedupe_key)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (business_id,dedupe_key) DO NOTHING`,
+          `INSERT INTO bank_txns (business_id,txn_date,description,amount,balance,category,matched,posted,source,dedupe_key,extra)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb) ON CONFLICT (business_id,dedupe_key) DO NOTHING`,
           [businessId, b.date, b.desc ?? '', toDecimal(cents),
            b.balance == null ? null : toDecimal(parseMoney(b.balance, 'bank balance')),
-           b.cat ?? null, matched, posted, b.source ?? '', key],
+           b.cat ?? null, matched, posted, b.source ?? '', key, extraFields(b, BANK_COLUMN_KEYS)],
         );
       }
       if (body.openingBalance && body.openingBalance.date) {
@@ -420,7 +429,7 @@ export async function readSnapshot(businessId: string): Promise<Record<string, u
     pool.query(`SELECT jl.entry_id,jl.line_no,jl.kind,jl.account,jl.debit,jl.credit
                   FROM journal_lines jl JOIN journal_entries je ON je.id=jl.entry_id
                  WHERE je.business_id=$1 ORDER BY jl.entry_id, jl.line_no`, [businessId]),
-    pool.query(`SELECT txn_date,description,amount,balance,category,matched,posted,source
+    pool.query(`SELECT txn_date,description,amount,balance,category,matched,posted,source,extra
                   FROM bank_txns WHERE business_id=$1 ORDER BY txn_date`, [businessId]),
     pool.query(`SELECT as_of,cash,ar,ap FROM opening_balances WHERE business_id=$1`, [businessId]),
   ]);
@@ -467,6 +476,7 @@ export async function readSnapshot(businessId: string): Promise<Record<string, u
       // $0 in money-in/out totals despite being stored correctly.
       const amt = fromDb(r.amount) / 100;
       return {
+        ...(r.extra ?? {}),
         date: iso(r.txn_date), desc: r.description,
         debit: amt < 0 ? -amt : 0, credit: amt > 0 ? amt : 0,
         balance: r.balance == null ? null : fromDb(r.balance) / 100,

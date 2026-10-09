@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authenticate } from '../app.js';
 import { HttpError, badRequest } from '../lib/errors.js';
 import { audit } from '../lib/audit.js';
+import { emailConfigured } from './email.js';
 import {
   devAuthEnabled, isProduction, localAuthEnabled, verifyLocalPassword, mintLocalToken, localAuthUsers,
   mintLocalRefreshToken, verifyLocalRefreshToken, loginThrottled, recordLoginFailure, clearLoginFailures,
@@ -92,6 +93,9 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     clientId: process.env.COGNITO_CLIENT_ID ?? null,
     region: process.env.AWS_REGION ?? null,
     scopes: ['openid', 'email', 'profile'],
+    // Lets the front end choose between sending an invoice itself and opening
+    // the user's own email app. A yes/no only; no key or address leaves the server.
+    emailEnabled: emailConfigured(),
   }));
 
   const callbackSchema = z
